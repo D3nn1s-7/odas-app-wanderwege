@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2 - 2026-08-19
+- FIX: `kurzbeschreibung` in `app-package.json` war 210 Zeichen lang und überschritt damit das
+  191-Zeichen-Limit der ODAS-Plattform (Spalte `shortDescription`) — jeder Upload eines Builds
+  schlug mit HTTP 500 fehl. Text auf 146 Zeichen gekürzt.
+
 ## 1.1.1 - 2026-08-19
 - FIX: Klick auf einen Kartenmarker öffnete die Detailansicht nur, wenn der Weg zufällig auf
   der aktuell sichtbaren Listenseite lag. `scrollToTrail()` springt jetzt zuerst auf die
