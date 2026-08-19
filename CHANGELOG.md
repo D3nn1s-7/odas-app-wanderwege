@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1 - 2026-08-19
+- FIX: Klick auf einen Kartenmarker öffnete die Detailansicht nur, wenn der Weg zufällig auf
+  der aktuell sichtbaren Listenseite lag. `scrollToTrail()` springt jetzt zuerst auf die
+  richtige Seite, bevor Detailansicht und Streckenlinie geladen werden.
+
 ## 1.1.0 - 2026-08-19
 - BREAKING: Ort, Umkreis und Kategorie sind jetzt Instanz-Konfiguration (`ort`, `radiusKm`,
   `kategorie`) statt Nutzer:inneneingabe — kein Suchfeld, kein Radius-Dropdown, kein

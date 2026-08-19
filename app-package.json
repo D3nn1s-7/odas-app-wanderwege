@@ -3,7 +3,7 @@
   "app-entwickler-name": "ondics-gmbh",
   "name-in-url": "wanderwege",
   "name": "Wanderwege",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "odas-app-icon": "assets/odas-app-icon.svg",
   "app-icon": "assets/odas-app-icon.svg",
   "kurzbeschreibung": "Zeigt die für diese Instanz konfigurierten Wander- und Radwege im Umkreis eines festgelegten Orts – mit Karte, Streckenverlauf, Höhenprofil und ODTA-konformem JSON-LD-Export auf Basis des DZT-Knowledge-Graphen.",

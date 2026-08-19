@@ -818,6 +818,17 @@ function renderMap(state) {
 }
 
 function scrollToTrail(state, trailId) {
+  // Marker-Klicks kommen aus state.filteredTrails, aber renderList() rendert nur die
+  // aktuell sichtbare Seite ins DOM. Liegt der Weg auf einer anderen Seite, faende
+  // querySelector sonst nichts und der Klick haette still keine Wirkung.
+  const idx = state.filteredTrails.findIndex((t) => t.id === trailId);
+  if (idx === -1) return; // Weg ist aktuell herausgefiltert
+  const targetPage = Math.floor(idx / state.pageSize);
+  if (targetPage !== state.page) {
+    state.page = targetPage;
+    renderList(state);
+  }
+
   const wrap = state.root.querySelector(`.ww-list-item-wrap[data-trail-id="${cssEscape(trailId)}"]`);
   if (!wrap) return;
   wrap.scrollIntoView({ behavior: "smooth", block: "center" });
