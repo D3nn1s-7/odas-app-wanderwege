@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 - 2026-08-19 (Branch `feature/ki-routenplanung`, noch nicht auf `main`)
+- NEU: KI-Routenplanung — optionaler Button in der Detailansicht öffnet ein Chat-Modal
+  (vorgefertigte, kategorieabhängige Fragen + freie Frage, mehrstufiger Verlauf, wählbare
+  Kontext-Route). Nutzt den ODAS-`/ai`-Endpunkt, funktioniert daher nur im ODAS-Live-Betrieb.
+- NEU: Umgebungsanreicherung (Grounding) — reale Unterkünfte/Gastronomie aus dem DZT Knowledge
+  Graph in der Nähe des Routenstarts fließen in den KI-Prompt ein, damit Antworten zu
+  Stellplätzen, Kosten oder Regelungen auf echten Daten statt reinem Modellwissen beruhen.
+- NEU: Instanz-Konfiguration `kiRoutenplanung` (Standard: `nein`) schaltet das Feature frei.
+- ENH: Gesprächsverlauf pro Route in `sessionStorage` (bis zu 20 Nachrichten je Route).
+
 ## 1.1.1 - 2026-08-19
 - FIX: Klick auf einen Kartenmarker öffnete die Detailansicht nur, wenn der Weg zufällig auf
   der aktuell sichtbaren Listenseite lag. `scrollToTrail()` springt jetzt zuerst auf die

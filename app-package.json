@@ -3,7 +3,7 @@
   "app-entwickler-name": "ondics-gmbh",
   "name-in-url": "wanderwege",
   "name": "Wanderwege",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "odas-app-icon": "assets/odas-app-icon.svg",
   "app-icon": "assets/odas-app-icon.svg",
   "kurzbeschreibung": "Zeigt die für diese Instanz konfigurierten Wander- und Radwege im Umkreis eines festgelegten Orts – mit Karte, Streckenverlauf, Höhenprofil und ODTA-konformem JSON-LD-Export auf Basis des DZT-Knowledge-Graphen.",
@@ -184,6 +184,14 @@
       "hilfe": "Welche Art von Wegen diese Instanz zeigt.",
       "default": "Fußwanderweg",
       "format": { "typ": "dropdown", "optionen": ["Radweg", "Fußwanderweg", "Sonstige touristische Wege"] },
+      "erforderlich": "ja"
+    },
+    "kiRoutenplanung": {
+      "label": "KI-Routenplanung",
+      "category": "sonstiges",
+      "hilfe": "Blendet den Button „KI Routenplanung“ in der Detailansicht ein. Nutzt den ODAS-KI-Endpunkt (Google Gemini) und funktioniert nur im ODAS-Live-Betrieb, nicht im lokalen Testlauf.",
+      "default": "nein",
+      "format": { "typ": "dropdown", "optionen": ["nein", "ja"] },
       "erforderlich": "ja"
     },
     "standardSprache": {

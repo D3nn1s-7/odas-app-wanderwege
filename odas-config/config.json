@@ -46,6 +46,7 @@
   "ort": "Böblingen",
   "radiusKm": "25",
   "kategorie": "Fußwanderweg",
+  "kiRoutenplanung": "ja",
   "standardSprache": "de",
   "sprache": "de",
   "datenquelleHinweis": "<p>Die Wegedaten stammen aus dem Knowledge Graph der Deutschen Zentrale für Tourismus, in den 16 Landesmarketingorganisationen und weitere Partner touristische Daten einspeisen. Umfang und Detailtiefe je Weg hängen vom liefernden Anbieter ab: Länge und Schwierigkeit liegen praktisch immer vor, Höhenprofile nur bei einem Teil der Wege.</p>",

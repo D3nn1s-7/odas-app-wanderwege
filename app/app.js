@@ -70,6 +70,14 @@ function onPageLeave(page) {
 
 const TRAIL_DS = "https://semantify.it/ds/hSsrCTQowvYH";
 
+// Unterkuenfte (u.a. Campingplaetze, Wohnmobilstellplaetze) und Gastronomie
+// fuer die KI-Routenplanung (Grounding-Anreicherung). Lodging-ID verifiziert
+// 2026-08-19 per SPARQL (ds:compliesWith auf einem realen Stellplatz-Entity);
+// Gastronomie-ID stammt aus derselben DZT-Dokumentation, aber (noch) nicht
+// eigenstaendig per SPARQL nachgemessen.
+const LODGING_DS = "https://semantify.it/ds/xVTuYwJrJrfq";
+const GASTRONOMY_DS = "https://semantify.it/ds/zmoYZEMoSAKS";
+
 const P = {
   name: "https://schema.org/name",
   description: "https://schema.org/description",
@@ -152,6 +160,22 @@ const KPI_CONTEXT = {
   circular: "Wege, die zum Ausgangspunkt zurückführen.",
 };
 
+// === KI-Routenplanung ===
+// Fest im Code hinterlegte, kategorieabhaengige Vorschlagsfragen (auf
+// ausdruecklichen Wunsch nicht konfigurierbar). "sonstige" dient zugleich als
+// Fallback fuer Gruppen ohne eigene Liste.
+const AI_PROMPT_PRESETS = {
+  rad: ["Wo gibt es Rastplätze oder Einkehrmöglichkeiten entlang der Strecke?", "Ist die Route für E-Bikes geeignet?"],
+  wandern: ["Wo kann ich auf dieser Route rasten oder einkehren?", "Was sollte ich für diese Tour einpacken?"],
+  sonstige: [
+    "Welche Wohnmobilstellplätze gibt es entlang der Route? Was kosten sie? Sind Hunde erlaubt?",
+    "Welche Sehenswürdigkeiten liegen auf dem Weg?",
+  ],
+};
+const AI_GROUNDING_RADIUS_KM = 8;
+const AI_HISTORY_LIMIT = 20; // Nachrichten, nicht Zeichen — Deckel gegen unbegrenztes Prompt-Wachstum
+const AI_SESSION_KEY_PREFIX = "ww-ai-";
+
 // ---------------------------------------------------------------------------
 // Einstieg
 // ---------------------------------------------------------------------------
@@ -209,6 +233,9 @@ function app(configdata = {}, enclosingHtmlDivElement) {
     hitLimit: false,
     statusMessage: null,
     searchCompleted: false,
+    aiChat: { open: false, trailId: null, sending: false },
+    aiMessagesByTrail: new Map(),
+    aiGroundingPromises: new Map(),
   };
   wwInstances.set(enclosingHtmlDivElement, state);
 
@@ -224,6 +251,7 @@ function mountShell(state) {
   restoreFilterControls(state);
   renderSchale4Blocks(state);
   renderErklaerText(state);
+  bindAiModalControls(state);
 }
 
 // ---------------------------------------------------------------------------
@@ -265,7 +293,41 @@ function renderShell(state) {
       <nav id="ww-pager-${u}" class="ww-pager"></nav>
 
       <div id="ww-schale4-bottom-${u}" class="ww-schale4-bottom"></div>
+
+      ${renderAiModal(state)}
     </section>
+  `;
+}
+
+function renderAiModal(state) {
+  const u = state.uid;
+  return `
+    <div id="ww-ai-modal-${u}" class="ww-ai-modal" hidden>
+      <div class="ww-ai-modal-backdrop" data-ai-close></div>
+      <div class="ww-ai-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="ww-ai-modal-title-${u}">
+        <div class="ww-ai-modal-header">
+          <h2 id="ww-ai-modal-title-${u}" class="ww-ai-modal-title">KI Routenplanung</h2>
+          <button type="button" class="ww-ai-modal-close" data-ai-close aria-label="Schließen">&times;</button>
+        </div>
+        <div class="ww-ai-modal-body">
+          <label class="ww-ai-route-label" for="ww-ai-route-select-${u}">Route</label>
+          <select id="ww-ai-route-select-${u}" class="form-select ww-ai-route-select"></select>
+
+          <div class="alert alert-warning ww-ai-disclaimer" role="alert">
+            KI-Antworten können ungenau sein. Bitte Preise, Öffnungszeiten und Regelungen vor Ort prüfen.
+          </div>
+
+          <div id="ww-ai-messages-${u}" class="ww-ai-messages"></div>
+          <div id="ww-ai-status-${u}" class="ww-ai-status" role="status" aria-live="polite"></div>
+          <div id="ww-ai-presets-${u}" class="ww-ai-presets"></div>
+
+          <div class="ww-ai-input-row">
+            <textarea id="ww-ai-input-${u}" class="form-control ww-ai-input" rows="2" placeholder="Eigene Frage stellen …"></textarea>
+            <button type="button" id="ww-ai-send-${u}" class="btn btn-primary ww-ai-send">Senden</button>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -1045,6 +1107,7 @@ function detailHtml(state, trail, detail) {
         ${detail.difficulty ? `<span class="ww-detail-badge">${escapeHtml(detail.difficulty)}</span>` : ""}
         ${detail.circular ? `<span class="ww-detail-badge">Rundweg</span>` : ""}
       </div>
+      ${state.config.kiRoutenplanung === "ja" ? `<button type="button" class="btn btn-sm btn-primary ww-ai-open-btn" data-trail-id="${escapeAttr(trail.id)}">KI Routenplanung</button>` : ""}
     </div>
 
     ${galleryHtml}
@@ -1101,6 +1164,11 @@ function detailHtml(state, trail, detail) {
 function bindDetailControls(state, trail, detail) {
   const wrap = state.root.querySelector(`.ww-list-item-wrap[data-trail-id="${cssEscape(trail.id)}"] .ww-list-detail`);
   if (!wrap) return;
+
+  const aiBtn = wrap.querySelector(".ww-ai-open-btn");
+  if (aiBtn) {
+    aiBtn.addEventListener("click", () => openAiChat(state, trail.id));
+  }
 
   const accordion = wrap.querySelector(".ww-jsonld-accordion");
   const codeEl = accordion ? accordion.querySelector("code") : null;
@@ -1165,6 +1233,337 @@ function toOdtaTrailJsonLd(trail, detail) {
   if (detail.licenseUrl) out["sdLicense"] = detail.licenseUrl;
   out["sdSource"] = "https://proxy.opendatagermany.io/api/ts/v2/kg/things";
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// KI-Routenplanung
+// ---------------------------------------------------------------------------
+// App-weites Modal (nicht pro Listenzeile) mit waehlbarer Kontext-Route,
+// mehrstufigem Chatverlauf und optionaler Umgebungsanreicherung (Grounding:
+// echte Unterkuenfte/Gastronomie aus dem DZT Knowledge Graph). Jede neue
+// Frage baut den kompletten Prompt (Routendaten + Grounding + bisheriger
+// Verlauf + neue Frage) neu zusammen — der /ai-Endpunkt selbst hat kein
+// Gedaechtnis, das Chat-Gefuehl entsteht rein clientseitig. Verlauf liegt in
+// sessionStorage (ueberlebt Reload im selben Tab, nicht dauerhaft).
+
+function bindAiModalControls(state) {
+  const u = state.uid;
+  const modal = state.root.querySelector(`#ww-ai-modal-${u}`);
+  if (!modal) return;
+
+  modal.querySelectorAll("[data-ai-close]").forEach((el) => el.addEventListener("click", () => closeAiChat(state)));
+
+  const select = modal.querySelector(`#ww-ai-route-select-${u}`);
+  if (select) select.addEventListener("change", () => switchAiRoute(state, select.value));
+
+  const input = modal.querySelector(`#ww-ai-input-${u}`);
+  const sendBtn = modal.querySelector(`#ww-ai-send-${u}`);
+  if (sendBtn && input) {
+    sendBtn.addEventListener("click", () => {
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      sendAiMessage(state, text);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendBtn.click();
+      }
+    });
+  }
+
+  const presets = modal.querySelector(`#ww-ai-presets-${u}`);
+  if (presets) {
+    presets.addEventListener("click", (event) => {
+      const btn = event.target.closest(".ww-ai-preset-btn");
+      if (!btn) return;
+      sendAiMessage(state, btn.dataset.prompt);
+    });
+  }
+
+  // Ueberlebt das Modal einen Seitenwechsel-und-zurueck (DOM wird neu
+  // aufgebaut, state.aiChat bleibt erhalten) im geoeffneten Zustand, wird es
+  // hier wiederhergestellt — konsistent mit dem Persistenzverhalten der
+  // restlichen App.
+  if (state.aiChat.open && state.aiChat.trailId) {
+    openAiChat(state, state.aiChat.trailId);
+  }
+}
+
+function openAiChat(state, trailId) {
+  const trail = state.allTrails.find((t) => t.id === trailId);
+  if (!trail) return;
+
+  state.aiChat.open = true;
+  state.aiChat.trailId = trailId;
+  state.aiChat.sending = false;
+
+  const u = state.uid;
+  const modal = state.root.querySelector(`#ww-ai-modal-${u}`);
+  if (!modal) return;
+  modal.hidden = false;
+
+  renderAiRouteOptions(state);
+  const select = modal.querySelector(`#ww-ai-route-select-${u}`);
+  if (select) select.value = trailId;
+
+  ensureAiMessagesLoaded(state, trailId);
+  renderAiMessages(state);
+  renderAiPresets(state);
+  renderAiStatus(state, "");
+
+  getAiGroundingPromise(state, trail); // im Hintergrund laden/cachen, kein Warten noetig
+}
+
+function closeAiChat(state) {
+  state.aiChat.open = false;
+  const modal = state.root.querySelector(`#ww-ai-modal-${state.uid}`);
+  if (modal) modal.hidden = true;
+}
+
+function switchAiRoute(state, trailId) {
+  if (!trailId || trailId === state.aiChat.trailId) return;
+  openAiChat(state, trailId);
+}
+
+function renderAiRouteOptions(state) {
+  const select = state.root.querySelector(`#ww-ai-route-select-${state.uid}`);
+  if (!select) return;
+  const trails = state.allTrails;
+  select.innerHTML = trails
+    .map((t) => `<option value="${escapeAttr(t.id)}">${escapeHtml(t.name)} (${escapeHtml(TRAIL_GROUP_LABELS[t.group] || t.group)})</option>`)
+    .join("");
+}
+
+function ensureAiMessagesLoaded(state, trailId) {
+  if (state.aiMessagesByTrail.has(trailId)) return;
+  state.aiMessagesByTrail.set(trailId, loadAiMessagesFromStorage(trailId));
+}
+
+function loadAiMessagesFromStorage(trailId) {
+  try {
+    const raw = sessionStorage.getItem(AI_SESSION_KEY_PREFIX + trailId);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed.messages) ? parsed.messages : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function saveAiMessagesToStorage(trailId, messages) {
+  try {
+    const capped = messages.slice(-AI_HISTORY_LIMIT);
+    sessionStorage.setItem(AI_SESSION_KEY_PREFIX + trailId, JSON.stringify({ messages: capped, ts: Date.now() }));
+  } catch (_error) {
+    // Privatmodus o.ae. kann werfen — Verlauf bleibt dann nur fuer diese Seitenansicht erhalten
+  }
+}
+
+function renderAiMessages(state) {
+  const el = state.root.querySelector(`#ww-ai-messages-${state.uid}`);
+  if (!el) return;
+  const messages = state.aiMessagesByTrail.get(state.aiChat.trailId) || [];
+  el.innerHTML = messages.length
+    ? messages.map((m) => `<div class="ww-ai-msg ww-ai-msg-${m.role}"><span class="ww-ai-msg-text">${escapeHtml(m.text)}</span></div>`).join("")
+    : `<div class="ww-ai-msg-empty">Noch keine Fragen gestellt. Vorschlag wählen oder eigene Frage schreiben.</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function renderAiPresets(state) {
+  const el = state.root.querySelector(`#ww-ai-presets-${state.uid}`);
+  if (!el) return;
+  const trail = state.allTrails.find((t) => t.id === state.aiChat.trailId);
+  const presets = (trail && AI_PROMPT_PRESETS[trail.group]) || AI_PROMPT_PRESETS.sonstige;
+  el.innerHTML = presets
+    .map((p) => `<button type="button" class="btn btn-sm btn-outline-primary ww-ai-preset-btn" data-prompt="${escapeAttr(p)}">${escapeHtml(p)}</button>`)
+    .join("");
+}
+
+function renderAiStatus(state, message, kind) {
+  const el = state.root.querySelector(`#ww-ai-status-${state.uid}`);
+  if (!el) return;
+  if (!message) {
+    el.innerHTML = "";
+    return;
+  }
+  const spinner = kind === "loading" ? `<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Wird geladen …</span></div>` : "";
+  const cls = kind === "error" ? "alert alert-danger" : "ww-ai-status-info";
+  el.innerHTML = `<div class="${cls}">${spinner}<span>${escapeHtml(message)}</span></div>`;
+}
+
+// Grounding-Treffer werden als Promise pro Route gecacht (auch nach einem
+// Fehlschlag als leeres Array) — ein Routenwechsel im Modal fragt dieselbe
+// Umgebung nicht zweimal ab.
+function getAiGroundingPromise(state, trail) {
+  if (state.aiGroundingPromises.has(trail.id)) return state.aiGroundingPromises.get(trail.id);
+  const promise = fetchAiGrounding(state, trail);
+  state.aiGroundingPromises.set(trail.id, promise);
+  return promise;
+}
+
+async function fetchAiGrounding(state, trail) {
+  if (trail.startLat == null || trail.startLon == null) return [];
+  try {
+    const sparql = buildGroundingSparql(trail.startLat, trail.startLon, AI_GROUNDING_RADIUS_KM);
+    const json = await fetchSparql(sparql, state.config);
+    const rows = (json && json.results && json.results.bindings) || [];
+    return parseGroundingRows(rows);
+  } catch (error) {
+    console.warn("Umgebungsdaten fuer KI-Routenplanung konnten nicht geladen werden:", error);
+    return [];
+  }
+}
+
+function buildGroundingSparql(lat, lon, radiusKm) {
+  const latNum = Number(lat);
+  const lonNum = Number(lon);
+  const radius = `${Math.max(1, Math.round(Number(radiusKm) || AI_GROUNDING_RADIUS_KM))}km`;
+  const geoShapeJson = JSON.stringify({
+    query: { geo_shape: { geometry: { shape: { type: "circle", radius, coordinates: [lonNum, latNum] }, relation: "intersects" } } },
+  });
+  const geoShapeLiteral = JSON.stringify(geoShapeJson);
+
+  return `PREFIX inst: <http://www.ontotext.com/connectors/elasticsearch/instance#>
+PREFIX con: <http://www.ontotext.com/connectors/elasticsearch#>
+PREFIX schema: <https://schema.org/>
+PREFIX ds: <https://vocab.sti2.at/ds/>
+
+SELECT ?id ?name ?desc WHERE {
+  ?search a inst:dzt-geo-shapes ;
+    con:query ${geoShapeLiteral} ;
+    con:entities ?geoent .
+  VALUES ?ds { <${LODGING_DS}> <${GASTRONOMY_DS}> }
+  ?geoent ds:compliesWith ?ds ; schema:geo ?geo .
+  ?geo a schema:GeoCoordinates .
+  BIND(?geoent AS ?id)
+  OPTIONAL { ?geoent schema:name ?name }
+  OPTIONAL { ?geoent schema:description ?desc }
+}
+LIMIT 200`;
+}
+
+function parseGroundingRows(rows) {
+  const byId = new Map();
+  for (const row of rows) {
+    const id = row.id && row.id.value;
+    if (!id) continue;
+    let entry = byId.get(id);
+    if (!entry) {
+      entry = { id, names: [], descs: [] };
+      byId.set(id, entry);
+    }
+    if (row.name) entry.names.push({ value: row.name.value, lang: row.name["xml:lang"] || "" });
+    if (row.desc) entry.descs.push({ value: row.desc.value, lang: row.desc["xml:lang"] || "" });
+  }
+  return Array.from(byId.values())
+    .map((e) => ({ name: pickPreferredName(e.names, "de"), description: pickPreferredName(e.descs, "de") }))
+    .filter((e) => e.name || e.description)
+    .slice(0, 15); // Prompt-Laenge begrenzen
+}
+
+function buildAiPrompt(trail, detail, groundingPois, history, question) {
+  const facts = [`${trail.name}`, `${TRAIL_GROUP_LABELS[trail.group] || trail.group}`];
+  if (detail.lengthKm != null) facts.push(`${detail.lengthKm.toLocaleString("de-DE", { maximumFractionDigits: 1 })} km`);
+  if (detail.difficulty) facts.push(`Schwierigkeit ${detail.difficulty}`);
+  if (detail.durationText) facts.push(`Dauer ${detail.durationText}`);
+  if (detail.uphillM != null) facts.push(`${Math.round(detail.uphillM)} Hm Aufstieg`);
+  if (detail.downhillM != null) facts.push(`${Math.round(detail.downhillM)} Hm Abstieg`);
+
+  const lines = [`Routendaten: ${facts.join(", ")}.`];
+  if (detail.description) lines.push(`Beschreibung: ${detail.description}`);
+
+  lines.push("");
+  if (groundingPois.length) {
+    lines.push(
+      "Bekannte Orte in der Umgebung (aus dem DZT Knowledge Graph, nutze nur diese Angaben fuer Fakten zu Kosten/Oeffnungszeiten/Regelungen; sage klar, wenn etwas nicht bekannt ist):"
+    );
+    groundingPois.forEach((p) => lines.push(`- ${p.name}${p.description ? `: ${p.description}` : ""}`));
+  } else {
+    lines.push("Es sind keine bekannten Orte in der Umgebung aus dem DZT Knowledge Graph verfuegbar.");
+  }
+
+  if (history.length) {
+    lines.push("");
+    lines.push("Bisheriger Verlauf:");
+    history.forEach((m) => lines.push(`${m.role === "user" ? "Nutzer" : "KI"}: ${m.text}`));
+  }
+
+  lines.push("", `Neue Frage: ${question}`, "", "Antworte in einfachem Fließtext ohne HTML oder Markdown.");
+  return lines.join("\n");
+}
+
+async function sendAiMessage(state, questionText) {
+  const trailId = state.aiChat.trailId;
+  if (!trailId || state.aiChat.sending) return;
+  const trail = state.allTrails.find((t) => t.id === trailId);
+  if (!trail) return;
+
+  const messages = state.aiMessagesByTrail.get(trailId) || [];
+  messages.push({ role: "user", text: questionText });
+  state.aiMessagesByTrail.set(trailId, messages);
+  saveAiMessagesToStorage(trailId, messages);
+  renderAiMessages(state);
+
+  state.aiChat.sending = true;
+  renderAiStatus(state, "KI denkt nach …", "loading");
+  const sendBtn = state.root.querySelector(`#ww-ai-send-${state.uid}`);
+  if (sendBtn) sendBtn.disabled = true;
+
+  try {
+    const detail = await loadTrailDetail(state, trail);
+    const groundingPois = await getAiGroundingPromise(state, trail);
+    const history = messages.slice(0, -1); // ohne die soeben gestellte Frage
+    const prompt = buildAiPrompt(trail, detail, groundingPois, history, questionText);
+    const answer = await fetchAiAnswer(prompt);
+
+    if (state.disposed) return;
+    const current = state.aiMessagesByTrail.get(trailId) || [];
+    current.push({ role: "assistant", text: answer });
+    state.aiMessagesByTrail.set(trailId, current);
+    saveAiMessagesToStorage(trailId, current);
+    renderAiStatus(state, "");
+  } catch (error) {
+    console.error("KI-Routenplanung fehlgeschlagen:", error);
+    renderAiStatus(state, error.message || "Die KI-Routenplanung ist derzeit nicht verfügbar.", "error");
+  } finally {
+    state.aiChat.sending = false;
+    if (sendBtn) sendBtn.disabled = false;
+    if (!state.disposed && state.aiChat.trailId === trailId) renderAiMessages(state);
+  }
+}
+
+async function fetchAiAnswer(prompt) {
+  const base = getOdasAppBasePath();
+  let response;
+  try {
+    response = await fetch(`${base}/ai`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ prompt, fileUrl: "" }),
+    });
+  } catch (_error) {
+    throw new Error("Die KI-Routenplanung ist nur im ODAS-Betrieb verfügbar.");
+  }
+  // Statuscodes, die typischerweise bedeuten "diese Route/Methode gibt es hier gar nicht"
+  // (kein echter ODAS-Betrieb, z. B. lokaler Live-Server oder Standalone-Hosting) statt
+  // eines echten Fehlers des /ai-Endpunkts selbst.
+  if ([404, 405, 501].includes(response.status)) {
+    throw new Error("Die KI-Routenplanung ist nur im ODAS-Betrieb verfügbar.");
+  }
+  if (!response.ok) {
+    throw new Error(`Die KI-Routenplanung antwortet mit HTTP ${response.status}.`);
+  }
+  let json;
+  try {
+    json = await response.json();
+  } catch (_error) {
+    throw new Error("Die Antwort der KI-Routenplanung konnte nicht gelesen werden.");
+  }
+  const result = json && typeof json.result === "string" ? json.result.trim() : "";
+  if (!result) throw new Error("Die KI-Routenplanung hat keine Antwort geliefert.");
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -1323,6 +1722,21 @@ function showStatus(state, message, kind) {
 // ---------------------------------------------------------------------------
 // Fetch-Helfer (Direktzugriff, kein ODAS-Proxy — siehe README)
 // ---------------------------------------------------------------------------
+
+// Kanonischer ODAS-Helfer: liefert den Basis-Pfad der App-Instanz (ohne
+// Datei-Segment wie index.html), damit z. B. der /ai-Endpunkt unabhaengig
+// vom Deployment-Pfad der Instanz korrekt adressiert wird.
+function getOdasAppBasePath(pathname = window.location.pathname) {
+  let appPath = String(pathname || "/");
+  if (!appPath.endsWith("/")) {
+    const lastSlashIndex = appPath.lastIndexOf("/");
+    const lastSegment = appPath.substring(lastSlashIndex + 1);
+    if (lastSegment.includes(".")) {
+      appPath = appPath.substring(0, lastSlashIndex + 1);
+    }
+  }
+  return appPath.replace(/\/+$/, "");
+}
 
 async function fetchSparql(query, configdata, signal) {
   const base = String(configdata.apiurl || "").trim();

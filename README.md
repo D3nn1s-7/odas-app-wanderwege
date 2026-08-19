@@ -65,6 +65,33 @@ Die Konfiguration wird vom ODAS geladen. Die App zeigt folgende Inhalte:
 - **Schale-4-Komponenten**: Methodik-Kasten und verwandte Links (optional konfigurierbar)
 - **Zustand überlebt Seitenwechsel**: Ergebnisse, Karte und Filterauswahl bleiben beim Wechsel zu
   Kontakt/Beschreibung/… und zurück erhalten — kein erneuter API-Abruf
+- **KI-Routenplanung** (optional, siehe eigener Abschnitt unten): Chat-Modal, das Fragen zu einer
+  Route (Rastmöglichkeiten, Stellplätze, Ausrüstung, …) an eine KI stellt
+
+---
+
+## KI-Routenplanung (optional)
+Über den Button „KI Routenplanung“ in der Detailansicht lässt sich zu einer Route ein
+Chat-Modal öffnen: vorgefertigte, kategorieabhängige Fragen oder eine freie Frage, mehrstufiger
+Verlauf, wählbare Kontext-Route. Für Wohnmobil-/Wanderrouten reichert die App den Prompt zusätzlich
+mit real im DZT Knowledge Graph gefundenen Unterkünften/Gastronomie in der Umgebung des Startpunkts
+an (Grounding), damit Antworten zu Stellplätzen, Kosten oder Regelungen auf echten Daten statt
+reinem Modellwissen beruhen.
+
+- **Aktivierung**: Instanz-Konfiguration `kiRoutenplanung` (Standard: `nein`) — Button erscheint
+  nur, wenn auf `ja` gesetzt.
+- **Nur im ODAS-Live-Betrieb nutzbar**: Der Chat ruft den ODAS-eigenen `/ai`-Endpunkt auf, den es
+  nur auf einer gebuchten ODAS-Instanz gibt. Im lokalen Live-Server-Testlauf zeigt der Chat
+  stattdessen den Hinweis „Die KI-Routenplanung ist nur im ODAS-Betrieb verfügbar.“
+- **Kein Internetzugriff der KI selbst**: Das Modell (Google Gemini über den ODAS-`/ai`-Endpunkt)
+  hat laut ODAS-Backend keinen eigenen Internet-/Grounding-Zugriff. Die App gleicht das teilweise
+  durch die oben beschriebene Umgebungsanreicherung aus, kann Fehler aber nicht ausschließen —
+  daher der sichtbare Disclaimer im Modal: „KI-Antworten können ungenau sein. Bitte Preise,
+  Öffnungszeiten und Regelungen vor Ort prüfen.“
+- **Speicherung**: Der Gesprächsverlauf liegt in `sessionStorage` (pro Route, bis zu 20 Nachrichten)
+  und überlebt damit einen Reload im selben Tab, aber keinen Tab-/Browser-Neustart.
+- **Kosten**: Jede Anfrage verursacht reale Kosten auf ODAS-Seite (Gemini-Aufruf) — deshalb ist der
+  Schalter standardmäßig deaktiviert.
 
 ---
 
@@ -185,6 +212,7 @@ Folgende Parameter werden bei der App-Instanzierung im ODAS konfiguriert:
 | `ort` | Ortsname, um den die Wege dieser Instanz gesucht werden (Nominatim-Geokodierung) | ja |
 | `radiusKm` | Suchradius um den konfigurierten Ort (5/10/25/50/100 km) | ja |
 | `kategorie` | Wegart dieser Instanz (Radweg/Fußwanderweg/Sonstige touristische Wege) | ja |
+| `kiRoutenplanung` | KI-Routenplanung-Button ein-/ausblenden (`nein`/`ja`). Siehe eigener Abschnitt oben. | ja |
 | `standardSprache` | Anzeigesprache für mehrsprachige Felder (de/en) | ja |
 | `sprache` | Sprache der App (`de`) | ja |
 | `titel` | Anzeigetitel der App | ja |
