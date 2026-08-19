@@ -6,7 +6,7 @@
   "version": "1.2.0",
   "odas-app-icon": "assets/odas-app-icon.svg",
   "app-icon": "assets/odas-app-icon.svg",
-  "kurzbeschreibung": "Zeigt die für diese Instanz konfigurierten Wander- und Radwege im Umkreis eines festgelegten Orts – mit Karte, Streckenverlauf, Höhenprofil und ODTA-konformem JSON-LD-Export auf Basis des DZT-Knowledge-Graphen.",
+  "kurzbeschreibung": "Zeigt Wander- und Radwege im konfigurierten Umkreis eines festen Orts – mit Karte, Streckenverlauf, Höhenprofil und ODTA-konformem JSON-LD-Export.",
   "beschreibung": [
     "_multiline_",
     "<p>Die Wanderwege-App zeigt die für diese Instanz konfigurierten Wander- und Radwege aus dem Knowledge Graph der Deutschen Zentrale für Tourismus (DZT): mit Karte, Streckenverlauf und Höhenprofil.</p>",
