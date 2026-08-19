@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title id="tab-title">Generic Open Data App</title>
+    <link rel="icon" href="favicon.png" type="image/png" />
+    <link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="app-base.css" />
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <header>
+      <div class="container" id="header">
+        <div class="row align-items-center">
+          <div
+            class="col-11 col-sm-6 col-xl-3 order-1 order-sm-1 order-xl-1"
+            id="logo-bootstrap"
+          >
+            <a href="#startseite" aria-label="Zur Startseite">
+              <img
+                src="logo_ondics.png"
+                alt="Open-Data-Portal-Logo"
+                class="logo"
+                id="logo-icon"
+              />
+            </a>
+          </div>
+          <div
+            class="col-11 col-sm-12 col-xl-6 order-3 order-sm-3 order-xl-2 text-center"
+          >
+            <h1 id="title-text" class="title">Generic Open Data App</h1>
+          </div>
+          <div
+            class="col-1 col-sm-6 col-xl-3 order-2 order-sm-2 order-xl-3 text-end"
+          >
+            <button
+              class="navbar-toggler"
+              type="button"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#offcanvasNavbar"
+              aria-controls="offcanvasNavbar"
+              aria-label="Navigation öffnen"
+            >
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <div
+              class="offcanvas offcanvas-end"
+              tabindex="-1"
+              id="offcanvasNavbar"
+              aria-labelledby="offcanvasNavbarLabel"
+            >
+              <div class="offcanvas-header">
+                <h2 class="h5 offcanvas-title" id="offcanvasNavbarLabel">Menü</h2>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="offcanvas"
+                  aria-label="Navigation schließen"
+                ></button>
+              </div>
+              <div class="offcanvas-body">
+                <nav aria-label="Seitennavigation">
+                  <ul class="navbar-nav">
+                    <li class="nav-item">
+                      <a class="nav-link" href="#startseite" data-page="startseite">Startseite</a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#beschreibung" data-page="beschreibung">Beschreibung</a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#kontakt" data-page="kontakt">Kontakt</a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#datenschutz" data-page="datenschutz">Datenschutz</a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#impressum" data-page="impressum">Impressum</a>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container mt-4" id="main-content"></main>
+
+    <footer class="footer">
+      <div class="container text-center" id="footer-text">
+        <p>© 2026 Generic Open Data App</p>
+      </div>
+    </footer>
+
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+    <script src="app-base.js"></script>
+  </body>
+</html>

@@ -1,0 +1,222 @@
+{
+  "app-entwickler-id": "12343",
+  "app-entwickler-name": "ondics-gmbh",
+  "name-in-url": "wanderwege",
+  "name": "Wanderwege",
+  "version": "1.0.0",
+  "odas-app-icon": "assets/odas-app-icon.svg",
+  "app-icon": "assets/odas-app-icon.svg",
+  "kurzbeschreibung": "Bundesweite Wander- und Radwegsuche mit Karte, Streckenverlauf, Höhenprofil und ODTA-konformem JSON-LD-Export auf Basis des DZT-Knowledge-Graphen.",
+  "beschreibung": [
+    "_multiline_",
+    "<p>Die Wanderwege-App macht Wander- und Radwege aus dem Knowledge Graph der Deutschen Zentrale für Tourismus (DZT) durchsuchbar: nach Ort oder Standort, mit Karte, Streckenverlauf und Höhenprofil.</p>",
+    "<h3>Inhalte</h3>",
+    "<p>Zu jedem Weg zeigt die App Länge, Schwierigkeit, geschätzte Dauer, Höhenmeter, Rundweg-Kennzeichen sowie Start- und Zielort. In der Detailansicht wird die Strecke als Linie auf der Karte gezeichnet; liegen Höhendaten entlang der Strecke vor, ergänzt ein Höhenprofil die Ansicht.</p>",
+    "<h3>Nutzung</h3>",
+    "<p>Ort eingeben oder den eigenen Standort verwenden, Umkreis wählen und die gefundenen Wege über Art, Schwierigkeit, Länge und Rundweg-Kennzeichen eingrenzen. Ein Klick auf einen Weg öffnet die Detailansicht mit Streckenverlauf und optionalem JSON-LD-Export.</p>",
+    "<h3>Für wen ist diese App?</h3>",
+    "<p>Die App richtet sich an Wander- und Radsportbegeisterte ebenso wie an Kommunen, Tourismusstellen und Entwickler:innen, die bundesweite Wegedaten verständlich erkunden oder nachnutzen möchten. Besondere Datenkenntnisse sind für die Nutzung nicht erforderlich.</p>",
+    "<h3>Datenquelle</h3>",
+    "<p>Die Daten stammen aus dem Knowledge Graph der Deutschen Zentrale für Tourismus (DZT), einem gemeinsamen Projekt der DZT und der Landesmarketingorganisationen. Die App fragt die Wege live über die SPARQL-Schnittstelle des Knowledge Graphs ab.</p>",
+    "<ul><li><strong>Open Data Portal:</strong> <a href=\"https://open-data-germany.org/knowledge-graphen/\" target=\"_blank\" rel=\"noopener\">Open Data Destination Germany</a></li><li><strong>Datensatz:</strong> <a href=\"https://changelog-dzt-kg.readme.io/docs/how-to-access-the-data\" target=\"_blank\" rel=\"noopener\">DZT Knowledge Graph – Zugriffsdokumentation</a></li><li><strong>Ressource:</strong> <a href=\"https://proxy.opendatagermany.io/api/ts/v1/kg/sparql\" target=\"_blank\" rel=\"noopener\">SPARQL-Endpunkt</a></li></ul>",
+    "<h3>Open Data App Store</h3>",
+    "<p>Diese App ist für den Open Data App Store vorbereitet. Sie erfordert einen DZT-API-Key; Hinweise zum Betrieb finden sich in der Instanzkonfiguration und im README.</p>"
+  ],
+  "tags-funktion": ["Karte", "Suche", "Filter", "Höhenprofil"],
+  "tags-dateityp": ["JSON-LD", "SPARQL"],
+  "tags-datenart": ["Tourismus", "Wanderwege", "Radwege", "Geodaten"],
+  "screenshots": [
+    "assets/Desktop_Screenshot.png"
+  ],
+  "daten": {
+    "beschreibung": "ODTA-konforme Wander- und Radwege (odta:Trail) aus dem DZT Knowledge Graph. Suche per SPARQL-Geo-Umkreisabfrage, Detaildaten per REST-Einzelabruf (GET /v2/kg/things/{id}).",
+    "schema": "assets/schema.json",
+    "beispiel": "SPARQL-Ergebnis im Format application/sparql-results+json mit den Variablen id, name, length, diffName, duration, circ, type, startLat, startLon je Treffer.",
+    "beispiel-url": "https://proxy.opendatagermany.io/api/ts/v1/kg/sparql"
+  },
+  "branding-css": "",
+  "api-version": "1",
+  "instanz-config": {
+    "seitentitel": {
+      "label": "Seitentitel",
+      "category": "allgemein",
+      "hilfe": "Der Seitentitel wird im Browser-Tab der App angezeigt.",
+      "default": "Wanderwege",
+      "format": { "typ": "string", "laenge": 60 },
+      "erforderlich": "ja"
+    },
+    "titel": {
+      "label": "Titel",
+      "category": "allgemein",
+      "hilfe": "Der Titel wird in der Kopfzeile der App angezeigt.",
+      "default": "Wanderwege",
+      "format": { "typ": "string", "laenge": 60 },
+      "erforderlich": "ja"
+    },
+    "icon": {
+      "label": "Portal-Logo",
+      "category": "allgemein",
+      "hilfe": "Das Logo wird links oben in der Kopfzeile angezeigt und führt zur Startseite.",
+      "default": "{{{odp.logo}}}",
+      "format": { "typ": "image", "hoehe": 100, "breite": 300 },
+      "erforderlich": "ja"
+    },
+    "kontakt": {
+      "label": "Kontakt",
+      "category": "kontakt-rechtliches",
+      "hilfe": "Der HTML-Inhalt wird im Menüpunkt Kontakt angezeigt.",
+      "default": [
+        "_multiline_",
+        "<p>Sie haben Fragen, Hinweise oder Verbesserungsvorschläge zu dieser App? Wenden Sie sich gern an den Anbieter des Open Data Portals.</p>",
+        "<p>Telefon: <a href='tel:{{odp.anbieter.telcode}}'>{{odp.anbieter.tel}}</a><br>E-Mail: <a href='mailto:{{odp.anbieter.email}}'>{{odp.anbieter.email}}</a></p>"
+      ],
+      "format": { "typ": "markdown" },
+      "erforderlich": "ja"
+    },
+    "beschreibung": {
+      "label": "Beschreibung",
+      "category": "beschreibung",
+      "hilfe": "Der HTML-Inhalt wird im Menüpunkt Über diese App angezeigt.",
+      "default": [
+        "_multiline_",
+        "<p>Die Wanderwege-App macht Wander- und Radwege aus dem Knowledge Graph der Deutschen Zentrale für Tourismus (DZT) durchsuchbar: nach Ort oder Standort, mit Karte, Streckenverlauf und Höhenprofil.</p>",
+        "<h3>Inhalte</h3>",
+        "<p>Zu jedem Weg zeigt die App Länge, Schwierigkeit, geschätzte Dauer, Höhenmeter, Rundweg-Kennzeichen sowie Start- und Zielort. In der Detailansicht wird die Strecke als Linie auf der Karte gezeichnet; liegen Höhendaten entlang der Strecke vor, ergänzt ein Höhenprofil die Ansicht.</p>",
+        "<h3>Nutzung</h3>",
+        "<p>Ort eingeben oder den eigenen Standort verwenden, Umkreis wählen und die gefundenen Wege über Art, Schwierigkeit, Länge und Rundweg-Kennzeichen eingrenzen. Ein Klick auf einen Weg öffnet die Detailansicht mit Streckenverlauf und optionalem JSON-LD-Export.</p>",
+        "<h3>Für wen ist diese App?</h3>",
+        "<p>Die App richtet sich an Wander- und Radsportbegeisterte ebenso wie an Kommunen, Tourismusstellen und Entwickler:innen, die bundesweite Wegedaten verständlich erkunden oder nachnutzen möchten. Besondere Datenkenntnisse sind für die Nutzung nicht erforderlich.</p>",
+        "<h3>Datenquelle</h3>",
+        "<p>Die Daten stammen aus dem Knowledge Graph der Deutschen Zentrale für Tourismus (DZT), einem gemeinsamen Projekt der DZT und der Landesmarketingorganisationen. Die App fragt die Wege live über die SPARQL-Schnittstelle des Knowledge Graphs ab.</p>",
+        "<ul><li><strong>Open Data Portal:</strong> <a href='https://open-data-germany.org/knowledge-graphen/' target='_blank' rel='noopener'>Open Data Destination Germany</a></li><li><strong>Datensatz:</strong> <a href='https://changelog-dzt-kg.readme.io/docs/how-to-access-the-data' target='_blank' rel='noopener'>DZT Knowledge Graph – Zugriffsdokumentation</a></li><li><strong>Ressource:</strong> <a href='https://proxy.opendatagermany.io/api/ts/v1/kg/sparql' target='_blank' rel='noopener'>SPARQL-Endpunkt</a></li></ul>",
+        "<h3>Open Data App Store</h3>",
+        "<p>Diese App ist für den Open Data App Store vorbereitet. Sie erfordert einen DZT-API-Key; Hinweise zum Betrieb finden sich im README.</p>"
+      ],
+      "format": { "typ": "markdown" },
+      "erforderlich": "ja"
+    },
+    "impressum": {
+      "label": "Impressum",
+      "category": "kontakt-rechtliches",
+      "hilfe": "Der HTML-Inhalt wird im Menüpunkt Impressum angezeigt.",
+      "default": [
+        "_multiline_",
+        "<h3>Anbieter</h3>",
+        "<p>{{odp.anbieter.orgName}}<br>{{odp.anbieter.orgUnit}}</p>",
+        "<p>{{odp.anbieter.strasse}}<br>{{odp.anbieter.plzort}}</p>",
+        "<p>Website: <a href='{{odp.anbieter.url-extern}}' target='_blank' rel='noopener'>{{odp.anbieter.url-extern}}</a></p>",
+        "<h3>Ansprechperson</h3>",
+        "<p>{{odp.anbieter.kontakt-bezeichnung}}<br>{{odp.anbieter.name}}</p>",
+        "<h3>Kontakt</h3>",
+        "<p>Telefon: {{odp.anbieter.tel}}<br>E-Mail: <a href='mailto:{{odp.anbieter.email}}'>{{odp.anbieter.email}}</a></p>"
+      ],
+      "format": { "typ": "markdown" },
+      "erforderlich": "ja"
+    },
+    "datenschutz": {
+      "label": "Datenschutz",
+      "category": "kontakt-rechtliches",
+      "hilfe": "Der HTML-Inhalt wird im Menüpunkt Datenschutz angezeigt.",
+      "default": [
+        "_multiline_",
+        "<p>Diese App verarbeitet die angezeigten offenen Daten ausschließlich im Browser. Es werden keine Cookies gesetzt, keine Nutzungsstatistiken erhoben und keine Daten im Browser dauerhaft gespeichert.</p>",
+        "<p>Alle für die Darstellung benötigten Programmbibliotheken werden mit der App ausgeliefert. Beim Aufruf werden dafür keine externen Bibliotheks-Server kontaktiert.</p>",
+        "<p>Die angezeigten Wege werden vom Browser direkt bei der DZT-Knowledge-Graph-Schnittstelle abgerufen. Dabei werden technisch bedingt IP-Adresse und Browserkennung an deren Betreiber übermittelt. Für die Ortssuche wird zusätzlich die Geokodierungs-Schnittstelle von OpenStreetMap (Nominatim) kontaktiert; bei Nutzung des Standort-Buttons fragt der Browser vorab die Standortfreigabe ab.</p>",
+        "<p><strong>Hinweis zum API-Key:</strong> Der für den Datenabruf verwendete DZT-API-Key ist Teil der Instanzkonfiguration dieser App und wird beim Laden der App im Browser übertragen. Er ist damit technisch von Dritten einsehbar. Diese App ist deshalb aktuell nicht für den produktiven ODAS-Live-Betrieb vorgesehen (siehe README).</p>",
+        "<h3>Beim Aufruf kontaktierte Drittanbieter</h3><p>Folgende externe Server werden kontaktiert. Dabei werden IP-Adresse und User-Agent der Besucher:innen an diese Anbieter übertragen:</p><ul><li><strong>proxy.opendatagermany.io</strong> — DZT-Knowledge-Graph-Schnittstelle (Wegedaten)</li><li><strong>nominatim.openstreetmap.org</strong> — Ortssuche (Geokodierung)</li><li><strong>tile.openstreetmap.org</strong> — Kartenkacheln</li></ul>"
+      ],
+      "format": { "typ": "markdown" },
+      "erforderlich": "ja"
+    },
+    "fusszeile": {
+      "label": "Fußzeile",
+      "category": "kontakt-rechtliches",
+      "hilfe": "Wird auf der Website unten in der Fußzeile angezeigt.",
+      "default": "(C) Copyright {{jahr}} | Daten: DZT Knowledge Graph | App-Entwickler: {{app.developer.name}} | ODAS: {{odas.betreiber.name}}",
+      "format": { "typ": "string", "laenge": 255 },
+      "erforderlich": "ja"
+    },
+    "urlDaten": {
+      "label": "URL zur Datenquelle im Open Data Portal",
+      "category": "datenherkunft",
+      "hilfe": "Katalog-/Dokumentationsseite des DZT Knowledge Graph.",
+      "default": "https://changelog-dzt-kg.readme.io/docs/how-to-access-the-data",
+      "beispiel": "https://changelog-dzt-kg.readme.io/docs/how-to-access-the-data",
+      "format": { "typ": "url", "laenge": 500 },
+      "erforderlich": "ja"
+    },
+    "apiurl": {
+      "label": "SPARQL-Endpunkt",
+      "category": "datenherkunft",
+      "hilfe": "SPARQL-Endpunkt des DZT Knowledge Graph. Die REST-Detailabfrage wird automatisch aus derselben Origin abgeleitet (…/api/ts/v2/kg/things).",
+      "default": "https://proxy.opendatagermany.io/api/ts/v1/kg/sparql",
+      "beispiel": "https://proxy.opendatagermany.io/api/ts/v1/kg/sparql",
+      "format": { "typ": "url", "laenge": 255 },
+      "erforderlich": "ja"
+    },
+    "apiKey": {
+      "label": "DZT-API-Key",
+      "category": "datenherkunft",
+      "hilfe": "API-Key für den DZT Knowledge Graph (x-api-key-Header). ACHTUNG: Dieser Wert ist Teil der Instanzkonfiguration und wird beim Laden der App im Browser übertragen – er ist damit öffentlich einsehbar. Diese App ist deshalb nicht für den ODAS-Live-Betrieb vorgesehen, solange die Plattform keinen serverseitigen Schutz für Zugangsdaten anbietet.",
+      "default": "",
+      "format": { "typ": "string", "laenge": 100 },
+      "erforderlich": "ja"
+    },
+    "standardSprache": {
+      "label": "Anzeigesprache für mehrsprachige Felder",
+      "category": "allgemein",
+      "hilfe": "Sprache, die für mehrsprachige Felder (Name, Beschreibung) bevorzugt angezeigt wird, falls verfügbar.",
+      "default": "de",
+      "format": { "typ": "dropdown", "optionen": ["de", "en"] },
+      "erforderlich": "ja"
+    },
+    "sprache": {
+      "label": "Sprache der App",
+      "category": "allgemein",
+      "hilfe": "Angabe der App-Sprache.",
+      "default": "de",
+      "format": { "typ": "dropdown", "optionen": ["de"] },
+      "erforderlich": "ja"
+    },
+    "datenquelleHinweis": {
+      "label": "Methodik-Kasten",
+      "category": "beschreibung",
+      "hilfe": "Erläutert Datenherkunft und Methodik. Wird als Hinweis-Kasten angezeigt. Leer lassen, um den Kasten auszublenden.",
+      "default": "<p>Die Wegedaten stammen aus dem Knowledge Graph der Deutschen Zentrale für Tourismus, in den 16 Landesmarketingorganisationen und weitere Partner touristische Daten einspeisen. Umfang und Detailtiefe je Weg hängen vom liefernden Anbieter ab: Länge und Schwierigkeit liegen praktisch immer vor, Höhenprofile nur bei einem Teil der Wege.</p>",
+      "format": { "typ": "markdown" },
+      "erforderlich": "nein"
+    },
+    "datenStand": {
+      "label": "Datenstand (Text)",
+      "category": "beschreibung",
+      "hilfe": "Zusätzlicher Text zum Datenstand.",
+      "default": "Stand: Live-Abruf beim DZT Knowledge Graph",
+      "format": { "typ": "string", "laenge": 100 },
+      "erforderlich": "nein"
+    },
+    "weiterfuehrendeLinks": {
+      "label": "Weiterführende Links",
+      "category": "beschreibung",
+      "hilfe": "Verwandte Datensätze / Hintergrundquellen (HTML). Leer = ausgeblendet.",
+      "default": "<ul><li><a href=\"https://open-data-germany.org/knowledge-graphen/\" target=\"_blank\" rel=\"noopener\">DZT Knowledge Graph – Übersicht</a></li><li><a href=\"https://open-data-germany.org/datenbestand-such-widget/\" target=\"_blank\" rel=\"noopener\">Datenbestand erkunden (Such-Widget)</a></li><li><a href=\"https://odta.io/\" target=\"_blank\" rel=\"noopener\">Open Data Tourism Alliance (ODTA)</a></li></ul>",
+      "format": { "typ": "markdown" },
+      "erforderlich": "nein"
+    },
+    "brandingCSS": {
+      "label": "Zusätzliches Branding-CSS",
+      "category": "sonstiges",
+      "hilfe": "Optionaler CSS-Code für die konkrete App-Instanz.",
+      "default": "",
+      "format": { "typ": "string", "laenge": 10000 },
+      "erforderlich": "nein"
+    },
+    "brandingCSSFile": {
+      "label": "Branding-CSS-Datei",
+      "category": "sonstiges",
+      "hilfe": "Optionale URL zu einer zusätzlichen CSS-Datei für die konkrete App-Instanz.",
+      "default": "",
+      "format": { "typ": "url", "laenge": 500 },
+      "erforderlich": "nein"
+    }
+  }
+}

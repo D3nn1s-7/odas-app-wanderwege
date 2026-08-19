@@ -1,0 +1,20 @@
+services:
+  oda-app:
+    ports: !reset []
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxynet"
+      # FQDN ohne Protokoll oder Pfad ersetzen.
+      - "traefik.http.routers.oda-app.rule=Host(`app1.example.com`)"
+      - "traefik.http.routers.oda-app.entrypoints=websecure"
+      - "traefik.http.routers.oda-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.oda-app.service=oda-app"
+      # Interner Nginx-Port; nicht aendern.
+      - "traefik.http.services.oda-app.loadbalancer.server.port=80"
+    networks:
+      - proxynet
+
+networks:
+  # Muss als externes Traefik-Netzwerk existieren.
+  proxynet:
+    external: true

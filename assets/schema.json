@@ -1,0 +1,79 @@
+{
+  "$schema": "https://frictionlessdata.io/schemas/table-schema.json",
+  "fields": [
+    {
+      "name": "id",
+      "title": "Weg-ID",
+      "type": "string",
+      "description": "Vollständige @id-URI des Wegs im DZT Knowledge Graph (odta:Trail).",
+      "constraints": { "required": true }
+    },
+    {
+      "name": "name",
+      "title": "Name",
+      "type": "string",
+      "description": "Bevorzugt deutscher Name des Wegs (schema:name); fällt auf die erste verfügbare Sprache zurück."
+    },
+    {
+      "name": "group",
+      "title": "Art",
+      "type": "string",
+      "description": "Aus dem @type-Array abgeleitete Kategorie: wandern, rad oder sonstige."
+    },
+    {
+      "name": "difficulty",
+      "title": "Schwierigkeit",
+      "type": "string",
+      "description": "odta:difficulty als Klartext (Leicht, Mittel, Schwer)."
+    },
+    {
+      "name": "lengthKm",
+      "title": "Länge (km)",
+      "type": "number",
+      "description": "odta:length, umgerechnet von Metern in Kilometer."
+    },
+    {
+      "name": "durationText",
+      "title": "Geschätzte Dauer",
+      "type": "string",
+      "description": "odta:estimatedDuration, aus ISO-8601-Dauer (z. B. PT1H5M) in Klartext umgewandelt."
+    },
+    {
+      "name": "circular",
+      "title": "Rundweg",
+      "type": "boolean",
+      "description": "odta:circularTrail."
+    },
+    {
+      "name": "uphillM",
+      "title": "Aufstieg (m)",
+      "type": "integer",
+      "description": "odta:uphillElevation, nur in der Detailansicht geladen."
+    },
+    {
+      "name": "downhillM",
+      "title": "Abstieg (m)",
+      "type": "integer",
+      "description": "odta:downhillElevation, nur in der Detailansicht geladen."
+    },
+    {
+      "name": "startLat",
+      "title": "Startpunkt Breite",
+      "type": "number",
+      "description": "Breitengrad des odta:startLocation, für die Kartenmarker der Trefferliste."
+    },
+    {
+      "name": "startLon",
+      "title": "Startpunkt Länge",
+      "type": "number",
+      "description": "Längengrad des odta:startLocation, für die Kartenmarker der Trefferliste."
+    },
+    {
+      "name": "lineCoords",
+      "title": "Streckengeometrie",
+      "type": "geojson",
+      "description": "Aus schema:geo/GeoShape/schema:line geparste Koordinatenkette (nur in der Detailansicht geladen)."
+    }
+  ],
+  "missingValues": [""]
+}

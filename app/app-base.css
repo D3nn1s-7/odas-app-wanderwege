@@ -1,0 +1,160 @@
+/* Button Styling */
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* Header Styling */
+header {
+  padding: 20px;
+  background-color: #f1f3f5;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.logo {
+  height: auto;
+}
+#logo-icon {
+  width: 189px;
+  height: 64px;
+  object-fit: contain;
+  /* Optional: Center the image within the container if there's extra space */
+  display: block;
+  margin: 0;
+}
+.title {
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: #212529;
+  margin: 0 auto;
+}
+
+.navbar-toggler {
+  border-radius: 5px;
+  background-color: #e9ecef;
+}
+
+.navbar-toggler-icon {
+  background-image: url("data:image/svg+xml;charset=UTF8,%3Csvg xmlns%3D%22http%3A//www.w3.org/2000/svg%22 viewBox%3D%220 0 30 30%22%3E%3Cpath stroke%3D%22rgba%280%2C 0%2C 0%2C 1%29%22 stroke-width%3D%222%22 d%3D%22M4 7h22M4 15h22M4 23h22%22/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 2em;
+  height: 2em;
+}
+
+.navbar-toggler:hover {
+  background-color: #ced4da;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+#main-content {
+  flex: 1;
+}
+
+/* Footer Styling */
+.footer {
+  position: relative;
+  bottom: 0;
+  width: 100%;
+  background-color: #f8f9fa;
+  border-top: 2px solid #dee2e6;
+  padding: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: #333;
+  margin-top: 20px;
+}
+
+body.register-page footer {
+  position: relative;
+}
+
+#secondarySites {
+  text-align: left;
+}
+
+/* Offcanvas Styling */
+.offcanvas-body {
+  background-color: #f8f9fa;
+  padding: 20px;
+}
+
+.navbar-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nav-item {
+  margin-bottom: 15px;
+}
+
+.nav-link {
+  font-size: 1.2rem;
+  color: #343a40;
+  text-decoration: none;
+  padding: 10px 0;
+  display: block;
+}
+
+.nav-link:hover {
+  color: #007bff;
+  text-decoration: underline;
+}
+
+.offcanvas-header {
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 10px;
+}
+
+.offcanvas-title {
+  font-size: 1.5rem;
+  color: #343a40;
+}
+
+.btn-close {
+  font-size: 1.5rem;
+  color: #343a40;
+  background-color: transparent;
+  border: none;
+}
+
+/* Responsiveness für mobile Geräte */
+@media (max-width: 768px) {
+  .logo {
+    width: 160px;
+  }
+  .title {
+    margin-top: 3%;
+    font-size: 1.75rem;
+  }
+  #logo-bootstrap {
+    text-align: center;
+  }
+  .footer {
+    padding: 10px;
+  }
+  .navbar-toggler {
+    font-size: 1.2rem;
+  }
+  .nav-link {
+    font-size: 1.1rem;
+  }
+  #secondarySites {
+    text-align: center;
+  }
+}

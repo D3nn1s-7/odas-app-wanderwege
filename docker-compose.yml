@@ -1,0 +1,13 @@
+services:
+  oda-app:
+    build: .
+    ports:
+      - "8090:80"
+    volumes:
+      - ./app:/usr/share/nginx/html/app
+      - ./odas-config:/usr/share/nginx/html/odas-config:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./assets:/usr/share/nginx/html/assets
+
+networks:
+  default:

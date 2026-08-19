@@ -1,0 +1,53 @@
+{
+  "seitentitel": "Wanderwege",
+  "titel": "Wanderwege",
+  "icon": "logo_ondics.png",
+  "kontakt": [
+    "_multiline_",
+    "<p>Sie haben Fragen, Hinweise oder Verbesserungsvorschläge zu dieser App? Wenden Sie sich gern an den Anbieter des Open Data Portals.</p>",
+    "<p>Telefon: <a href='tel:+49711310093100'>0711 31009-3100</a><br>E-Mail: <a href='mailto:info@ondics.de'>info@ondics.de</a></p>"
+  ],
+  "beschreibung": [
+    "_multiline_",
+    "<p>Die Wanderwege-App macht Wander- und Radwege aus dem Knowledge Graph der Deutschen Zentrale für Tourismus (DZT) durchsuchbar: nach Ort oder Standort, mit Karte, Streckenverlauf und Höhenprofil.</p>",
+    "<h3>Inhalte</h3>",
+    "<p>Zu jedem Weg zeigt die App Länge, Schwierigkeit, geschätzte Dauer, Höhenmeter, Rundweg-Kennzeichen sowie Start- und Zielort. In der Detailansicht wird die Strecke als Linie auf der Karte gezeichnet; liegen Höhendaten entlang der Strecke vor, ergänzt ein Höhenprofil die Ansicht.</p>",
+    "<h3>Nutzung</h3>",
+    "<p>Ort eingeben oder den eigenen Standort verwenden, Umkreis wählen und die gefundenen Wege über Art, Schwierigkeit, Länge und Rundweg-Kennzeichen eingrenzen. Ein Klick auf einen Weg öffnet die Detailansicht mit Streckenverlauf und optionalem JSON-LD-Export.</p>",
+    "<h3>Für wen ist diese App?</h3>",
+    "<p>Die App richtet sich an Wander- und Radsportbegeisterte ebenso wie an Kommunen, Tourismusstellen und Entwickler:innen, die bundesweite Wegedaten verständlich erkunden oder nachnutzen möchten. Besondere Datenkenntnisse sind für die Nutzung nicht erforderlich.</p>",
+    "<h3>Datenquelle</h3>",
+    "<p>Die Daten stammen aus dem Knowledge Graph der Deutschen Zentrale für Tourismus (DZT), einem gemeinsamen Projekt der DZT und der Landesmarketingorganisationen. Die App fragt die Wege live über die SPARQL-Schnittstelle des Knowledge Graphs ab.</p>",
+    "<ul><li><strong>Open Data Portal:</strong> <a href='https://open-data-germany.org/knowledge-graphen/' target='_blank' rel='noopener'>Open Data Destination Germany</a></li><li><strong>Datensatz:</strong> <a href='https://changelog-dzt-kg.readme.io/docs/how-to-access-the-data' target='_blank' rel='noopener'>DZT Knowledge Graph – Zugriffsdokumentation</a></li><li><strong>Ressource:</strong> <a href='https://proxy.opendatagermany.io/api/ts/v1/kg/sparql' target='_blank' rel='noopener'>SPARQL-Endpunkt</a></li></ul>",
+    "<h3>Open Data App Store</h3>",
+    "<p>Diese App ist für den Open Data App Store vorbereitet. Sie erfordert einen DZT-API-Key; Hinweise zum Betrieb finden sich im README.</p>"
+  ],
+  "impressum": [
+    "_multiline_",
+    "<h2>Anbieter</h2>",
+    "<p>Ondics GmbH</p>",
+    "<p>Blumenstraße 19<br>70182 Stuttgart</p>",
+    "<p>Website: <a href='https://www.ondics.de/' target='_blank' rel='noopener'>https://www.ondics.de/</a></p>",
+    "<h2>Kontakt</h2>",
+    "<p>Telefon: 0711 31009-3100<br>E-Mail: <a href='mailto:info@ondics.de'>info@ondics.de</a></p>"
+  ],
+  "datenschutz": [
+    "_multiline_",
+    "<p>Diese App verarbeitet die angezeigten offenen Daten ausschließlich im Browser. Es werden keine Cookies gesetzt, keine Nutzungsstatistiken erhoben und keine Daten im Browser dauerhaft gespeichert.</p>",
+    "<p>Alle für die Darstellung benötigten Programmbibliotheken werden mit der App ausgeliefert. Beim Aufruf werden dafür keine externen Bibliotheks-Server kontaktiert.</p>",
+    "<p>Die angezeigten Wege werden vom Browser direkt bei der DZT-Knowledge-Graph-Schnittstelle abgerufen. Dabei werden technisch bedingt IP-Adresse und Browserkennung an deren Betreiber übermittelt. Für die Ortssuche wird zusätzlich die Geokodierungs-Schnittstelle von OpenStreetMap (Nominatim) kontaktiert; bei Nutzung des Standort-Buttons fragt der Browser vorab die Standortfreigabe ab.</p>",
+    "<p><strong>Hinweis zum API-Key:</strong> Der für den Datenabruf verwendete DZT-API-Key ist Teil der Instanzkonfiguration dieser App und wird beim Laden der App im Browser übertragen. Er ist damit technisch von Dritten einsehbar. Diese App ist deshalb aktuell nicht für den produktiven ODAS-Live-Betrieb vorgesehen (siehe README).</p>",
+    "<h3>Beim Aufruf kontaktierte Drittanbieter</h3><p>Folgende externe Server werden kontaktiert. Dabei werden IP-Adresse und User-Agent der Besucher:innen an diese Anbieter übertragen:</p><ul><li><strong>proxy.opendatagermany.io</strong> — DZT-Knowledge-Graph-Schnittstelle (Wegedaten)</li><li><strong>nominatim.openstreetmap.org</strong> — Ortssuche (Geokodierung)</li><li><strong>tile.openstreetmap.org</strong> — Kartenkacheln</li></ul>"
+  ],
+  "fusszeile": "© 2026 | Daten: DZT Knowledge Graph | App-Entwickler: Ondics GmbH | ODAS: Ondics GmbH",
+  "urlDaten": "https://changelog-dzt-kg.readme.io/docs/how-to-access-the-data",
+  "apiurl": "https://proxy.opendatagermany.io/api/ts/v1/kg/sparql",
+  "apiKey": "",
+  "standardSprache": "de",
+  "sprache": "de",
+  "datenquelleHinweis": "<p>Die Wegedaten stammen aus dem Knowledge Graph der Deutschen Zentrale für Tourismus, in den 16 Landesmarketingorganisationen und weitere Partner touristische Daten einspeisen. Umfang und Detailtiefe je Weg hängen vom liefernden Anbieter ab: Länge und Schwierigkeit liegen praktisch immer vor, Höhenprofile nur bei einem Teil der Wege.</p>",
+  "datenStand": "Stand: Live-Abruf beim DZT Knowledge Graph",
+  "weiterfuehrendeLinks": "<ul><li><a href=\"https://open-data-germany.org/knowledge-graphen/\" target=\"_blank\" rel=\"noopener\">DZT Knowledge Graph – Übersicht</a></li><li><a href=\"https://open-data-germany.org/datenbestand-such-widget/\" target=\"_blank\" rel=\"noopener\">Datenbestand erkunden (Such-Widget)</a></li><li><a href=\"https://odta.io/\" target=\"_blank\" rel=\"noopener\">Open Data Tourism Alliance (ODTA)</a></li></ul>",
+  "brandingCSS": "",
+  "brandingCSSFile": "../assets/branding.css"
+}
