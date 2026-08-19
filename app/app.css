@@ -18,26 +18,21 @@
 
 .ww-app { padding-bottom: 2rem; font-family: inherit; color: var(--ww-text); }
 
-/* === Suchleiste === */
-.ww-search-bar {
-  background: var(--ww-surface); border: 1px solid var(--ww-border);
-  border-radius: var(--ww-radius); padding: 0.75rem; box-shadow: var(--ww-shadow);
+/* === Erklärtext === */
+.ww-erklaer-text:empty { display: none; }
+.ww-erklaer-p {
+  background: var(--ww-accent-bg); border: 1px solid var(--ww-border);
+  border-radius: var(--ww-radius); padding: 0.75rem 1rem; margin: 0 0 0.75rem;
+  font-size: 0.9rem; line-height: 1.5; color: var(--ww-text);
 }
-.ww-search-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.ww-search-input-wrap { position: relative; flex: 1 1 260px; min-width: 200px; display: flex; align-items: center; }
-.ww-search-input-wrap svg { position: absolute; left: 0.7rem; color: var(--ww-text-muted); pointer-events: none; }
-.ww-search-input {
-  width: 100%; padding: 0.5rem 0.75rem 0.5rem 2.2rem;
-  border: 1px solid var(--ww-border); border-radius: var(--ww-radius-sm);
-  font-size: 0.9rem; background: var(--ww-bg); color: var(--ww-text);
-}
-.ww-search-input:focus { outline: none; border-color: var(--ww-primary); box-shadow: 0 0 0 3px rgba(47,107,62,0.12); }
-.ww-radius-select { width: auto; flex: 0 0 auto; font-size: 0.85rem; }
-.ww-search-status { margin-top: 0.6rem; font-size: 0.85rem; }
+
+/* === Status (Laden / Hinweis / Fehler) === */
+.ww-search-status:empty { margin: 0; }
+.ww-search-status { margin-bottom: 0.75rem; font-size: 0.85rem; }
 .ww-status-loading, .ww-status-info { display: flex; align-items: center; gap: 0.6rem; color: var(--ww-text-muted); }
 
 /* === KPI Grid === */
-.ww-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin: 1rem 0; }
+.ww-kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin: 1rem 0; }
 .ww-kpi-card {
   background: var(--ww-surface); border: 1px solid var(--ww-border);
   border-left: 3px solid var(--ww-accent); border-radius: var(--ww-radius);
@@ -184,11 +179,10 @@
 
 /* === Responsive === */
 @media (max-width: 991.98px) {
-  .ww-kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .ww-detail-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 575.98px) {
-  .ww-kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+  .ww-kpi-grid { grid-template-columns: 1fr; gap: 0.5rem; }
   .ww-kpi-value { font-size: 1.3rem; }
   .ww-kpi-card { padding: 0.75rem 0.9rem; }
   .ww-toolbar { flex-direction: column; align-items: stretch; }
@@ -198,8 +192,6 @@
   .ww-gallery-img { height: 130px; }
   .ww-detail-title { font-size: 1.1rem; }
   .ww-pager-btn { width: 40px; height: 40px; }
-  .ww-search-row { flex-direction: column; align-items: stretch; }
-  .ww-radius-select { width: 100%; }
 }
 
 /* Leaflet popup refinement */

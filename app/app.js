@@ -2,11 +2,14 @@
  * Wanderwege – App-Logik
  *
  * Funktion: app(configdata, enclosingHtmlDivElement)
- *  - Nutzer:innen suchen einen Ort (Nominatim-Geocoding) oder verwenden den
- *    eigenen Standort, waehlen einen Umkreis und erhalten die Wander- und
- *    Radwege (odta:Trail) der DZT-Knowledge-Graph-API im Umkreis.
+ *  - Ort, Umkreis und Kategorie (Radweg/Fußwanderweg/Sonstige touristische
+ *    Wege) sind fest in der Instanz-Konfiguration hinterlegt (ort, radiusKm,
+ *    kategorie) — keine Suchmaske im UI. Beim Erstaufruf laedt die App den
+ *    konfigurierten Ausschnitt automatisch aus der DZT-Knowledge-Graph-API.
  *  - Suche laeuft per SPARQL (ein Request liefert Name, Laenge, Schwierigkeit,
- *    Dauer, Rundweg-Kennzeichen, Art und einen Referenzpunkt je Treffer).
+ *    Dauer, Rundweg-Kennzeichen, Art und einen Referenzpunkt je Treffer);
+ *    verbleibende Filter (Schwierigkeit, Laenge, Rundweg) bleiben im UI
+ *    einstellbar.
  *  - Die Detailansicht laedt bei Bedarf den vollen Datensatz eines Wegs
  *    (GET /v2/kg/things/{id}) und zeichnet die Strecke als Polyline auf der
  *    Karte sowie – wenn Hoehendaten vorhanden sind – ein Hoehenprofil.
@@ -14,6 +17,11 @@
  *    100 %, Laenge/Schwierigkeit ~100 %, Dauer ~67 %. Sperrstatus,
  *    Ausruestung, Betreuer, Gipfelpunkte werden von keinem Anbieter befuellt
  *    (0 %) und sind daher nicht Teil der Detailansicht.
+ *  - Zustand ueberlebt Seitenwechsel: onPageLeave() baut nur DOM-gebundene
+ *    Laufzeitressourcen (Karte, Chart, laufender Fetch) ab, der Eintrag in
+ *    wwInstances bleibt erhalten. Kehrt app() zu einer bereits bekannten
+ *    Instanz zurueck, wird aus dem Cache neu gerendert statt neu geladen
+ *    (siehe app(), "Resume"-Zweig).
  *
  * Sicherheitshinweis (siehe README): Der DZT-API-Key liegt in der
  * Instanz-Konfiguration und ist damit oeffentlich lesbar, weil ODAS-Apps
@@ -22,12 +30,14 @@
  */
 
 // F-42-Muster: Instanzzaehler auf Modulebene, Laufzeitzustand pro Instanz im
-// von app() erzeugten state-Objekt.
+// von app() erzeugten state-Objekt. wwInstances haelt den Eintrag bewusst
+// auch nach onPageLeave() weiter (siehe dort) — nur so kann app() bei einer
+// Rueckkehr zur Startseite ohne erneuten Netzwerk-Request neu rendern.
 let wwInstanzZaehler = 0;
 const wwInstances = new Map();
 
 function onPageLeave(page) {
-  wwInstances.forEach((state, container) => {
+  wwInstances.forEach((state) => {
     state.disposed = true;
     if (state.searchAbortController) state.searchAbortController.abort();
     if (state.map) {
@@ -48,7 +58,9 @@ function onPageLeave(page) {
       }
       state.elevationChart = null;
     }
-    wwInstances.delete(container);
+    // Der Eintrag selbst (allTrails, filteredTrails, filters, center,
+    // detailCache, searchCompleted, statusMessage, …) bleibt in wwInstances
+    // erhalten — siehe Kommentar oben.
   });
 }
 
@@ -111,9 +123,20 @@ const TRAIL_GROUP_WANDERN = new Set([
   "WalkingAndSkatingTrail",
   "InlineSkatingTrail",
 ]);
-const TRAIL_GROUP_LABELS = { rad: "Rad", wandern: "Wandern", sonstige: "Sonstige" };
+const TRAIL_GROUP_LABELS = {
+  rad: "Radweg",
+  wandern: "Fußwanderweg",
+  sonstige: "Sonstige touristische Wege",
+};
+// Bildet den in der Instanz-Konfiguration gewaehlten Kategorie-Wert
+// (instanz-config "kategorie") auf die interne Gruppe ab, die
+// classifyTypeGroup() aus den @type-Werten der Suchtreffer ableitet.
+const KATEGORIE_TO_GROUP = {
+  "Radweg": "rad",
+  "Fußwanderweg": "wandern",
+  "Sonstige touristische Wege": "sonstige",
+};
 const DIFFICULTY_ORDER = ["Leicht", "Mittel", "Schwer"];
-const RADIUS_OPTIONS_KM = [10, 25, 50, 100];
 const DEFAULT_RADIUS_KM = 25;
 const LENGTH_BUCKETS = [
   { id: "", label: "Beliebige Länge", min: 0, max: Infinity },
@@ -124,10 +147,9 @@ const LENGTH_BUCKETS = [
 ];
 const KPI_CONTEXT = {
   count:
-    "Gezählt werden Wege, deren Streckenverlauf den gewählten Umkreis kreuzt – auch wenn der markierte Startpunkt (etwa bei mehrteiligen Fernwegen) außerhalb liegt.",
+    "Gezählt werden Wege, deren Streckenverlauf den konfigurierten Umkreis kreuzt – auch wenn der markierte Startpunkt (etwa bei mehrteiligen Fernwegen) außerhalb liegt.",
   totalLength: "Summe der Streckenlängen aller aktuell angezeigten Wege.",
   circular: "Wege, die zum Ausgangspunkt zurückführen.",
-  groups: "Anzahl unterschiedlicher Wegarten (z. B. Wandern, Rad) in der aktuellen Auswahl.",
 };
 
 // ---------------------------------------------------------------------------
@@ -135,6 +157,32 @@ const KPI_CONTEXT = {
 // ---------------------------------------------------------------------------
 
 function app(configdata = {}, enclosingHtmlDivElement) {
+  const cached = wwInstances.get(enclosingHtmlDivElement);
+
+  if (cached) {
+    // Rueckkehr zur Startseite derselben Instanz: state bleibt erhalten,
+    // nur das DOM (von der zwischenzeitlich gezeigten Seite ueberschrieben)
+    // und die davon abgeleiteten Laufzeitressourcen (Karte, Chart) werden
+    // neu aufgebaut. Kein erneuter Netzwerk-Request, wenn die urspruengliche
+    // Suche bereits abgeschlossen war.
+    cached.disposed = false;
+    cached.root = enclosingHtmlDivElement;
+    cached.config = configdata;
+    mountShell(cached);
+
+    if (cached.searchCompleted) {
+      if (cached.statusMessage) showStatus(cached, cached.statusMessage.text, cached.statusMessage.kind);
+      applyFilters(cached); // rendert KPIs/Liste/Karte aus dem Cache
+    } else {
+      // Der urspruengliche Suchlauf wurde durch einen Seitenwechsel
+      // unterbrochen (onPageLeave() bricht laufende Fetches ab) und nie
+      // abgeschlossen — erneut versuchen, statt dauerhaft leer zu bleiben.
+      renderMap(cached);
+      initSearchFromConfig(cached);
+    }
+    return;
+  }
+
   const state = {
     uid: "i" + ++wwInstanzZaehler,
     root: enclosingHtmlDivElement,
@@ -144,11 +192,11 @@ function app(configdata = {}, enclosingHtmlDivElement) {
     center: null, // [lat, lon]
     centerLabel: "",
     radiusKm: DEFAULT_RADIUS_KM,
+    lockedGroup: "",
     allTrails: [],
     filteredTrails: [],
     filters: { group: "", difficulty: "", lengthBucket: "", circularOnly: false },
     availableDifficulties: [],
-    availableGroups: [],
     map: null,
     markerLayer: null,
     detailPolylineLayer: null,
@@ -159,42 +207,23 @@ function app(configdata = {}, enclosingHtmlDivElement) {
     pageSize: 10,
     searchAbortController: null,
     hitLimit: false,
+    statusMessage: null,
+    searchCompleted: false,
   };
-
-  const vorherigerState = wwInstances.get(enclosingHtmlDivElement);
-  if (vorherigerState) {
-    vorherigerState.disposed = true;
-    if (vorherigerState.map) {
-      try {
-        vorherigerState.map.remove();
-      } catch (error) {
-        console.warn("Fehler beim Entfernen der Leaflet-Karte:", error);
-      }
-    }
-    if (vorherigerState.elevationChart) {
-      try {
-        vorherigerState.elevationChart.destroy();
-      } catch (error) {
-        console.warn("Fehler beim Entfernen des Hoehenprofils:", error);
-      }
-    }
-  }
   wwInstances.set(enclosingHtmlDivElement, state);
 
+  mountShell(state);
+  renderMap(state); // leere Deutschlandkarte als Ausgangszustand
+  initSearchFromConfig(state);
+}
+
+function mountShell(state) {
   state.root.innerHTML = renderShell(state);
-  bindSearchControls(state);
   bindFilterControls(state);
   bindListControls(state);
+  restoreFilterControls(state);
   renderSchale4Blocks(state);
-
-  const missing = missingSourceReason(state.config);
-  if (missing) {
-    showStatus(state, missing, "info");
-  } else {
-    showStatus(state, "Suchen Sie einen Ort oder verwenden Sie Ihren Standort, um Wanderwege in der Umgebung zu finden.", "info");
-  }
-
-  renderMap(state); // leere Deutschlandkarte als Ausgangszustand
+  renderErklaerText(state);
 }
 
 // ---------------------------------------------------------------------------
@@ -203,36 +232,18 @@ function app(configdata = {}, enclosingHtmlDivElement) {
 
 function renderShell(state) {
   const u = state.uid;
-  const radiusOptions = RADIUS_OPTIONS_KM.map(
-    (km) => `<option value="${km}" ${km === DEFAULT_RADIUS_KM ? "selected" : ""}>${km} km</option>`,
-  ).join("");
 
   return `
     <section id="ww-app-${u}" class="ww-app">
-      <div class="ww-search-bar mb-3">
-        <div class="ww-search-row">
-          <div class="ww-search-input-wrap">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input type="text" id="ww-place-${u}" class="ww-search-input" placeholder="Ort eingeben, z. B. Freiburg im Breisgau" autocomplete="off">
-          </div>
-          <button type="button" id="ww-place-submit-${u}" class="btn btn-primary">Suchen</button>
-          <button type="button" id="ww-geolocate-${u}" class="btn btn-outline-secondary" title="Meinen Standort verwenden">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-            Standort
-          </button>
-          <select id="ww-radius-${u}" class="form-select ww-radius-select" title="Umkreis">${radiusOptions}</select>
-        </div>
-        <div id="ww-search-status-${u}" class="ww-search-status" role="status" aria-live="polite"></div>
-      </div>
+      <div id="ww-erklaer-${u}" class="ww-erklaer-text"></div>
+
+      <div id="ww-search-status-${u}" class="ww-search-status" role="status" aria-live="polite"></div>
 
       <div id="ww-schale4-top-${u}" class="ww-schale4-top"></div>
 
       <div id="ww-kpi-${u}" class="ww-kpi-grid"></div>
 
       <div class="ww-toolbar mb-3">
-        <select id="ww-filter-group-${u}" class="form-select ww-filter-select">
-          <option value="">Alle Arten</option>
-        </select>
         <select id="ww-filter-difficulty-${u}" class="form-select ww-filter-select">
           <option value="">Alle Schwierigkeiten</option>
         </select>
@@ -258,84 +269,70 @@ function renderShell(state) {
   `;
 }
 
-// ---------------------------------------------------------------------------
-// Suche: Ortssuche / Standort / SPARQL
-// ---------------------------------------------------------------------------
-
-function bindSearchControls(state) {
+function renderErklaerText(state) {
   const u = state.uid;
-  const root = state.root;
-  const placeInput = root.querySelector(`#ww-place-${u}`);
-  const submitBtn = root.querySelector(`#ww-place-submit-${u}`);
-  const geoBtn = root.querySelector(`#ww-geolocate-${u}`);
-  const radiusSelect = root.querySelector(`#ww-radius-${u}`);
-
-  const triggerPlaceSearch = () => {
-    const query = placeInput.value.trim();
-    if (!query) return;
-    searchByPlaceName(state, query);
-  };
-
-  submitBtn.addEventListener("click", triggerPlaceSearch);
-  placeInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      triggerPlaceSearch();
-    }
-  });
-
-  geoBtn.addEventListener("click", () => useMyLocation(state));
-
-  radiusSelect.addEventListener("change", (e) => {
-    state.radiusKm = Number(e.target.value) || DEFAULT_RADIUS_KM;
-    if (state.center) runSearch(state, state.center, state.centerLabel);
-  });
-}
-
-async function searchByPlaceName(state, query) {
-  const missing = missingSourceReason(state.config);
-  if (missing) return showStatus(state, missing, "info");
-
-  showStatus(state, `„${query}" wird gesucht …`, "loading");
-  try {
-    const coords = await geocodeAddress(query);
-    if (!coords) {
-      showStatus(state, `Kein Ort gefunden für „${query}".`, "info");
-      return;
-    }
-    state.centerLabel = query;
-    await runSearch(state, coords, query);
-  } catch (error) {
-    console.error("Geocoding fehlgeschlagen:", error);
-    showStatus(state, "Die Ortssuche ist fehlgeschlagen. Bitte später erneut versuchen.", "error");
-  }
-}
-
-function useMyLocation(state) {
-  const missing = missingSourceReason(state.config);
-  if (missing) return showStatus(state, missing, "info");
-
-  if (!navigator.geolocation) {
-    showStatus(state, "Ihr Browser unterstützt keine Standortermittlung.", "info");
+  const el = state.root.querySelector(`#ww-erklaer-${u}`);
+  if (!el) return;
+  const ort = String(state.config.ort || "").trim();
+  const kategorieLabel = String(state.config.kategorie || "").trim();
+  const radius = Number(state.config.radiusKm) || DEFAULT_RADIUS_KM;
+  if (!ort || !kategorieLabel) {
+    el.innerHTML = "";
     return;
   }
-  showStatus(state, "Ihr Standort wird ermittelt …", "loading");
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const coords = [pos.coords.latitude, pos.coords.longitude];
-      state.centerLabel = "Mein Standort";
-      runSearch(state, coords, "Mein Standort");
-    },
-    (err) => {
-      const messages = {
-        1: "Standortzugriff wurde verweigert.",
-        2: "Standort konnte nicht ermittelt werden.",
-        3: "Zeitüberschreitung bei der Standortermittlung.",
-      };
-      showStatus(state, messages[err.code] || "Standort konnte nicht ermittelt werden.", "info");
-    },
-    { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
-  );
+  el.innerHTML =
+    `<p class="ww-erklaer-p">Diese Karte zeigt ${escapeHtml(kategorieLabel)} im Umkreis von ` +
+    `${escapeHtml(String(radius))} km um ${escapeHtml(ort)}. Die Wege werden live aus dem ` +
+    `Knowledge Graph der Deutschen Zentrale für Tourismus abgerufen.</p>`;
+}
+
+// ---------------------------------------------------------------------------
+// Suche: konfigurierter Ort/Umkreis/Kategorie -> Geocoding -> SPARQL
+// ---------------------------------------------------------------------------
+
+// Loest beim Erstaufruf einer Instanz automatisch den konfigurierten
+// Ausschnitt auf und laedt ihn. Liefert kein UI-Suchfeld mehr — Ort, Umkreis
+// und Kategorie sind Redaktionssache (instanz-config), nicht Nutzer:innensache.
+async function initSearchFromConfig(state) {
+  const missing = missingSourceReason(state.config);
+  if (missing) {
+    showStatus(state, missing, "info");
+    state.searchCompleted = true; // ohne Config-Aenderung gibt es nichts zu wiederholen
+    return;
+  }
+
+  const ort = String(state.config.ort || "").trim();
+  const kategorieLabel = String(state.config.kategorie || "").trim();
+  state.lockedGroup = KATEGORIE_TO_GROUP[kategorieLabel] || "wandern";
+  state.filters.group = state.lockedGroup;
+  state.radiusKm = Number(state.config.radiusKm) || DEFAULT_RADIUS_KM;
+
+  showStatus(state, `Wege im Umkreis von ${state.radiusKm} km um „${ort}" werden geladen …`, "loading");
+
+  let coords;
+  try {
+    coords = await geocodeAddress(ort);
+  } catch (error) {
+    if (state.disposed) return; // Seite verlassen, waehrend Geocoding lief: naechster Resume versucht es erneut
+    console.error("Geocoding fehlgeschlagen:", error);
+    showStatus(state, "Die Ortssuche ist fehlgeschlagen. Bitte später erneut versuchen.", "error");
+    state.searchCompleted = true;
+    return;
+  }
+  if (state.disposed) return;
+
+  if (!coords) {
+    showStatus(
+      state,
+      `Der konfigurierte Ort „${ort}" konnte nicht gefunden werden. Bitte in der Instanzkonfiguration prüfen.`,
+      "info",
+    );
+    state.searchCompleted = true;
+    return;
+  }
+
+  state.centerLabel = ort;
+  state.searchCompleted = await runSearch(state, coords, ort);
 }
 
 async function geocodeAddress(query) {
@@ -355,8 +352,12 @@ async function geocodeAddress(query) {
   return [lat, lon];
 }
 
+// Liefert true, wenn die Suche wirklich abgeschlossen wurde (Erfolg, leeres
+// Ergebnis oder ein definitiver Fehler) und false, wenn sie durch einen
+// Seitenwechsel abgebrochen wurde — dann soll ein spaeterer Resume es erneut
+// versuchen, statt den Umkreis dauerhaft leer zu lassen.
 async function runSearch(state, center, label) {
-  if (state.disposed) return;
+  if (state.disposed) return false;
   state.center = center;
   state.centerLabel = label || "";
   state.page = 0;
@@ -372,12 +373,12 @@ async function runSearch(state, center, label) {
     const query = buildTrailSearchSparql(center[0], center[1], state.radiusKm);
     json = await fetchSparql(query, state.config, controller.signal);
   } catch (error) {
-    if (controller.signal.aborted) return;
+    if (controller.signal.aborted) return false;
     console.error("Wegsuche fehlgeschlagen:", error);
     showStatus(state, error.message || "Die Wegsuche ist fehlgeschlagen.", "error");
-    return;
+    return true;
   }
-  if (controller.signal.aborted || state.disposed) return;
+  if (controller.signal.aborted || state.disposed) return false;
 
   const rows = json?.results?.bindings || [];
   state.hitLimit = rows.length >= 950;
@@ -392,6 +393,7 @@ async function runSearch(state, center, label) {
   computeAvailableFacets(state);
   renderFilterOptions(state);
   applyFilters(state);
+  return true;
 }
 
 function buildTrailSearchSparql(lat, lon, radiusKm) {
@@ -516,40 +518,40 @@ function formatIsoDuration(iso) {
 // ---------------------------------------------------------------------------
 
 function computeAvailableFacets(state) {
-  const groups = new Set();
   const difficulties = new Set();
   for (const t of state.allTrails) {
-    groups.add(t.group);
     if (t.difficulty) difficulties.add(t.difficulty);
   }
-  state.availableGroups = Array.from(groups);
   state.availableDifficulties = DIFFICULTY_ORDER.filter((d) => difficulties.has(d));
 }
 
 function renderFilterOptions(state) {
   const u = state.uid;
-  const groupSel = state.root.querySelector(`#ww-filter-group-${u}`);
   const diffSel = state.root.querySelector(`#ww-filter-difficulty-${u}`);
-
-  groupSel.innerHTML =
-    `<option value="">Alle Arten</option>` +
-    state.availableGroups
-      .map((g) => `<option value="${escapeAttr(g)}">${escapeHtml(TRAIL_GROUP_LABELS[g] || g)}</option>`)
-      .join("");
+  if (!diffSel) return;
 
   diffSel.innerHTML =
     `<option value="">Alle Schwierigkeiten</option>` +
     state.availableDifficulties.map((d) => `<option value="${escapeAttr(d)}">${escapeHtml(d)}</option>`).join("");
 }
 
+// Stellt nach einem Neuaufbau der Shell (renderShell()) die zuvor gewaehlten
+// Filterwerte wieder her — Difficulty-Optionen kommen aus dem Cache
+// (state.availableDifficulties), nicht aus einem erneuten Suchlauf.
+function restoreFilterControls(state) {
+  renderFilterOptions(state);
+  const u = state.uid;
+  const diffSel = state.root.querySelector(`#ww-filter-difficulty-${u}`);
+  const lengthSel = state.root.querySelector(`#ww-filter-length-${u}`);
+  const circularCheck = state.root.querySelector(`#ww-filter-circular-${u}`);
+  if (diffSel) diffSel.value = state.filters.difficulty;
+  if (lengthSel) lengthSel.value = state.filters.lengthBucket;
+  if (circularCheck) circularCheck.checked = state.filters.circularOnly;
+}
+
 function bindFilterControls(state) {
   const u = state.uid;
   const root = state.root;
-  root.querySelector(`#ww-filter-group-${u}`).addEventListener("change", (e) => {
-    state.filters.group = e.target.value;
-    state.page = 0;
-    applyFilters(state);
-  });
   root.querySelector(`#ww-filter-difficulty-${u}`).addEventListener("change", (e) => {
     state.filters.difficulty = e.target.value;
     state.page = 0;
@@ -618,7 +620,6 @@ function renderKpis(state) {
   const filtered = state.filteredTrails;
   const totalLengthKm = filtered.reduce((sum, t) => sum + (t.lengthKm || 0), 0);
   const circularCount = filtered.filter((t) => t.circular === true).length;
-  const groupCount = new Set(filtered.map((t) => t.group)).size;
 
   const tiles = [
     { id: "count", label: "Gefundene Wege", value: filtered.length.toLocaleString("de-DE"), ctx: KPI_CONTEXT.count },
@@ -629,7 +630,6 @@ function renderKpis(state) {
       ctx: KPI_CONTEXT.totalLength,
     },
     { id: "circular", label: "Rundwege", value: circularCount.toLocaleString("de-DE"), ctx: KPI_CONTEXT.circular },
-    { id: "groups", label: "Arten", value: groupCount.toLocaleString("de-DE"), ctx: KPI_CONTEXT.groups },
   ];
 
   el.innerHTML = tiles
@@ -1280,13 +1280,23 @@ function renderSchale4Blocks(state) {
 function missingSourceReason(configdata) {
   const apiurl = String(configdata.apiurl || "").trim();
   const apiKey = String(configdata.apiKey || "").trim();
+  const ort = String(configdata.ort || "").trim();
   const isPlaceholder = (v) => /^\{\{.*\}\}$/.test(v) || /^<.*>$/.test(v);
   if (!apiurl || isPlaceholder(apiurl)) return "Es ist keine Datenquelle konfiguriert.";
   if (!apiKey || isPlaceholder(apiKey)) return "Es ist kein DZT-API-Key konfiguriert.";
+  if (!ort || isPlaceholder(ort)) return "Es ist kein Ort konfiguriert.";
   return null;
 }
 
 function showStatus(state, message, kind) {
+  // Nicht-transiente Zustaende (alles außer "loading") merken, damit ein
+  // Resume aus dem Cache (siehe app()) denselben Zustand ohne neue Anfrage
+  // reproduzieren kann. "clear"/leere Nachricht bedeutet: Ergebnisse selbst
+  // zeigen den Zustand, keine Statuszeile noetig.
+  if (kind !== "loading") {
+    state.statusMessage = message ? { text: message, kind } : null;
+  }
+
   const u = state.uid;
   const el = state.root.querySelector(`#ww-search-status-${u}`);
   if (!el) return;

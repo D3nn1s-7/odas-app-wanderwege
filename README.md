@@ -1,8 +1,9 @@
-Die App **Wanderwege** macht Wander- und Radwege aus dem Knowledge Graph der Deutschen Zentrale
-für Tourismus (DZT) durchsuchbar: Ort oder eigenen Standort eingeben, Umkreis wählen und die
-gefundenen Wege auf Karte und in einer filterbaren Liste ansehen. Die Detailansicht zeichnet die
-Strecke als Linie auf der Karte, zeigt bei Verfügbarkeit ein Höhenprofil und bietet einen
-ODTA-konformen JSON-LD-Export je Weg.
+Die App **Wanderwege** zeigt die für eine Instanz konfigurierten Wander- und Radwege aus dem
+Knowledge Graph der Deutschen Zentrale für Tourismus (DZT) auf Karte und in einer filterbaren
+Liste. Ort, Umkreis und Kategorie (Radweg/Fußwanderweg/Sonstige touristische Wege) werden bei
+der Buchung der App-Instanz festgelegt, nicht von Besucher:innen der App. Die Detailansicht
+zeichnet die Strecke als Linie auf der Karte, zeigt bei Verfügbarkeit ein Höhenprofil und bietet
+einen ODTA-konformen JSON-LD-Export je Weg.
 
 Die App ist für die Verwendung im [Open Data App Store](https://open-data-app-store.de/) gemacht
 und entspricht der [Open Data App](https://open-data-apps.github.io/open-data-app-docs/open-data-app-spezifikation/).
@@ -49,10 +50,12 @@ Die App ist eine Single Page Application (Webapp) mit:
 
 Die Konfiguration wird vom ODAS geladen. Die App zeigt folgende Inhalte:
 
-- **Suche**: Ortssuche (OpenStreetMap Nominatim) oder eigener Standort, Umkreis 10–100 km wählbar
-- **KPI-Kacheln**: Gefundene Wege, Gesamtlänge, Rundwege, Arten – mit erläuternden Kontexttexten
-- **Filter**: Art (Wandern/Rad/Sonstige, aus dem @type-Array abgeleitet), Schwierigkeit, Länge,
-  nur Rundwege
+- **Fester Instanz-Zuschnitt**: Ort, Umkreis (5–100 km) und Kategorie sind Teil der
+  Instanz-Konfiguration; die App lädt den passenden Ausschnitt beim Aufruf automatisch
+- **Erklärtext**: Aus Ort/Umkreis/Kategorie generierter Einleitungssatz, der sagt, was angezeigt
+  wird — kein separater Config-Wert, immer synchron zur tatsächlichen Konfiguration
+- **KPI-Kacheln**: Gefundene Wege, Gesamtlänge, Rundwege – mit erläuternden Kontexttexten
+- **Filter**: Schwierigkeit, Länge, nur Rundwege (die Kategorie selbst ist fest, kein Filter mehr)
 - **Interaktive Karte**: Leaflet.js mit OpenStreetMap-Kacheln, Startpunkt-Markern und
   Klick-Navigation zur Detailansicht
 - **Listenansicht**: Clientseitiges Paging, Inline-Detailansicht pro Weg
@@ -60,14 +63,16 @@ Die Konfiguration wird vom ODAS geladen. Die App zeigt folgende Inhalte:
   der Strecke vorliegen), Länge, Schwierigkeit, Dauer, Auf-/Abstieg, Start- und Zielort, Lizenz
 - **ODTA-konformer JSON-LD-Export**: Anzeigen, Kopieren und Herunterladen pro Weg
 - **Schale-4-Komponenten**: Methodik-Kasten und verwandte Links (optional konfigurierbar)
+- **Zustand überlebt Seitenwechsel**: Ergebnisse, Karte und Filterauswahl bleiben beim Wechsel zu
+  Kontakt/Beschreibung/… und zurück erhalten — kein erneuter API-Abruf
 
 ---
 
 ## Für wen ist diese App?
 Diese App richtet sich an Wander- und Radsportbegeisterte sowie an Kommunen und
-Tourismusverantwortliche, die Wegedaten des DZT Knowledge Graph visualisieren wollen. Es sind
-keine besonderen Datenkenntnisse nötig – die Bedienung erfolgt über Suche, Karte, Liste und
-Filter.
+Tourismusverantwortliche, die Wegedaten des DZT Knowledge Graph für ihre Region visualisieren
+wollen. Es sind keine besonderen Datenkenntnisse nötig – die Bedienung erfolgt über Karte, Liste
+und die verbleibenden Filter (Schwierigkeit, Länge, Rundweg).
 
 ---
 
@@ -144,14 +149,19 @@ Empfohlene ODAS-Einstellungen:
 automatisch und lädt dann `odas-config/config.json`; kein Edit an `app/app-base.js` nötig.
 
 **Für einen echten lokalen Testlauf mit Daten** in `odas-config/config.json` unter `apiKey` den
-eigenen DZT-API-Key eintragen. Diese Datei **nicht committen**, solange sie einen echten Key
-enthält – lokal wieder leeren oder den Key vor einem Commit entfernen.
+eigenen DZT-API-Key eintragen sowie `ort`/`radiusKm`/`kategorie` nach Bedarf anpassen. Diese
+Datei **nicht committen**, solange sie einen echten Key enthält – lokal wieder leeren oder den
+Key vor einem Commit entfernen.
 
 ### Aufbau der App
-Der Inhaltsbereich wird in `app/app.js` erstellt. Dort sind Suche (Ortssuche/Standort, SPARQL),
-Filter, Paginierung, Leaflet-Karte, Detailansicht mit Streckenlinie und Höhenprofil sowie
-JSON-LD-Export implementiert. Template-eigene Dateien (`app/app-base.js`, `app/app-base.css`,
-`app/index.html`) werden nicht verändert. Leaflet und Chart.js werden dynamisch nachgeladen.
+Der Inhaltsbereich wird in `app/app.js` erstellt. Dort sind der automatische Suchlauf aus der
+Instanz-Konfiguration (Ort/Umkreis/Kategorie, SPARQL), die verbleibenden Filter, Paginierung,
+Leaflet-Karte, Detailansicht mit Streckenlinie und Höhenprofil sowie JSON-LD-Export
+implementiert. Zustand (Ergebnisse, Filterauswahl, Detail-Cache) bleibt über Seitenwechsel
+hinweg im Speicher erhalten (`wwInstances`, siehe Kommentare in `app.js`) — `onPageLeave()` baut
+nur die DOM-gebundenen Laufzeitressourcen (Karte, Höhenprofil-Chart) ab, nicht den Datenzustand.
+Template-eigene Dateien (`app/app-base.js`, `app/app-base.css`, `app/index.html`) werden nicht
+verändert. Leaflet und Chart.js werden dynamisch nachgeladen.
 
 ### Wichtige Dateien
 | Datei | Beschreibung |
@@ -172,6 +182,9 @@ Folgende Parameter werden bei der App-Instanzierung im ODAS konfiguriert:
 | `apiurl` | SPARQL-Endpunkt des DZT Knowledge Graph. Die REST-Detailabfrage wird automatisch aus derselben Origin abgeleitet. | ja |
 | `apiKey` | DZT-API-Key (`x-api-key`-Header). Siehe Sicherheitshinweis oben. | ja |
 | `urlDaten` | URL zur Zugriffsdokumentation des DZT Knowledge Graph | ja |
+| `ort` | Ortsname, um den die Wege dieser Instanz gesucht werden (Nominatim-Geokodierung) | ja |
+| `radiusKm` | Suchradius um den konfigurierten Ort (5/10/25/50/100 km) | ja |
+| `kategorie` | Wegart dieser Instanz (Radweg/Fußwanderweg/Sonstige touristische Wege) | ja |
 | `standardSprache` | Anzeigesprache für mehrsprachige Felder (de/en) | ja |
 | `sprache` | Sprache der App (`de`) | ja |
 | `titel` | Anzeigetitel der App | ja |

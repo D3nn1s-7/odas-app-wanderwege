@@ -184,10 +184,7 @@ async function loadPage(page) {
   if (content === undefined || content === null) {
     switch (page) {
       case "startseite":
-        content = await app(
-          configData,
-          document.getElementById("main-content"),
-        );
+        content = await app(configData, document.getElementById("main-content"));
         break;
       case "kontakt":
         content = createPageContent("Kontakt", configData.kontakt);
