@@ -34,7 +34,7 @@
   "datenschutz": [
     "_multiline_",
     "<p>Diese App verarbeitet die angezeigten offenen Daten ausschließlich im Browser. Es werden keine Cookies gesetzt, keine Nutzungsstatistiken erhoben und keine Daten im Browser dauerhaft gespeichert.</p>",
-    "<p>Alle für die Darstellung benötigten Programmbibliotheken werden mit der App ausgeliefert. Beim Aufruf werden dafür keine externen Bibliotheks-Server kontaktiert.</p>",
+    "<p>Alle für die Darstellung benötigten Programmbibliotheken werden mit der App ausgeliefert. Beim Aufruf werden dafür keine externen Server kontaktiert.</p>",
     "<p>Die angezeigten Wege werden über den DZT-Relay des Open Data App Store abgerufen: Der Browser sendet die Anfrage an den Open Data App Store, der sie serverseitig – inklusive des dort hinterlegten API-Keys – an die DZT-Knowledge-Graph-Schnittstelle weiterleitet. Für die Auflösung des konfigurierten Orts wird zusätzlich die Geokodierungs-Schnittstelle von OpenStreetMap (Nominatim) direkt vom Browser aus kontaktiert.</p>",
     "<h3>Beim Aufruf kontaktierte Drittanbieter</h3><p>Folgende externe Server werden kontaktiert. Dabei werden IP-Adresse und User-Agent der Besucher:innen an diese Anbieter übertragen:</p><ul><li><strong>nominatim.openstreetmap.org</strong> — Ortssuche (Geokodierung)</li><li><strong>tile.openstreetmap.org</strong> — Kartenkacheln</li></ul><p>Die DZT-Knowledge-Graph-Schnittstelle (<strong>proxy.opendatagermany.io</strong>) wird nicht vom Browser, sondern serverseitig vom Open Data App Store kontaktiert.</p>"
   ],

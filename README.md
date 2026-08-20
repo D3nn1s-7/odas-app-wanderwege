@@ -244,7 +244,7 @@ innerhalb einer ODAS-Instanz; ohne ihn bleibt der Datenabruf ergebnislos.
 Vom Browser aus werden beim Aufruf dieser App folgende externe Server kontaktiert:
 
 - `nominatim.openstreetmap.org` — Ortssuche (Geokodierung)
-- `tile.openstreetmap.org` — Kartenkacheln (OpenStreetMap)
+- `tile.openstreetmap.org` — Kartenkacheln
 
 Im ODAS-Live-Betrieb kontaktiert zusätzlich der Open Data App Store serverseitig
 `proxy.opendatagermany.io` (DZT-Knowledge-Graph-Schnittstelle, Wegedaten, SPARQL + REST) — dieser
