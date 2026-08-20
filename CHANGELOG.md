@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0 - 2026-08-20
+- BREAKING: `apiKey` entfernt aus `instanz-config` — die App verwaltet keinen eigenen DZT-API-Key
+  mehr. Alle Abrufe laufen über den neuen ODAS-DZT-Relay (`<app-url>/dzt?path=…`), der Host,
+  `/api/`-Präfix und den plattformseitig hinterlegten API-Key ergänzt. Damit entfällt der bisherige
+  Vorbehalt gegen den ODAS-Live-Betrieb (siehe README).
+- Voraussetzung: `open-data-app-store` ab Commit `d2a8540` („Implement DNZ Proxy endpoint").
+- Außerhalb einer ODAS-Instanz (Live Server, Standalone) liefert die App keine Wegedaten mehr,
+  weil der Relay dort nicht existiert.
+
 ## 1.1.2 - 2026-08-19
 - FIX: `kurzbeschreibung` in `app-package.json` war 210 Zeichen lang und überschritt damit das
   191-Zeichen-Limit der ODAS-Plattform (Spalte `shortDescription`) — jeder Upload eines Builds

@@ -12,30 +12,34 @@ Mehr zu Open Data Apps unter https://github.com/open-data-apps
 
 ---
 
-## ⚠️ Sicherheitshinweis: API-Key ist derzeit öffentlich sichtbar
+## Datenzugriff über den ODAS-DZT-Relay
 
-ODAS-Apps sind statische Single Page Applications. Die Instanz-Konfiguration wird über einen
-anonymen `fetch` auf `<app-url>/config` geladen (`app/app-base.js`, `getConfigUrl()`/
-`fetchConfig()`) — diese Antwort ist damit für jede:n Besucher:in der App im Klartext einsehbar,
-nicht nur im DevTools-Netzwerk-Tab, sondern als abrufbare JSON-URL.
+Der DZT-API-Key wird **nicht** von dieser App verwaltet. Seit Commit `d2a8540` des
+`open-data-app-store` (2026-08-20, „Implement DNZ Proxy endpoint") stellt die Plattform einen
+serverseitigen Relay bereit:
 
-Der DZT-API-Key (`apiKey`) liegt wie jeder andere Konfigurationswert in dieser Instanz-Config.
-Ein serverseitiger Schutzmechanismus für Zugangsdaten existiert im ODAS derzeit nur für einzelne
-Spezialfälle (z. B. der `${appUrl}/ai`-Endpunkt der KI-Backend-Integration, bei dem die
-Plattform den Provider-Key hält und die App selbst keinen Schlüssel überträgt). Für frei
-konfigurierbare externe APIs wie den DZT Knowledge Graph gibt es aktuell keinen vergleichbaren
-Relay.
+```
+GET <app-url>/dzt?path=<pfad relativ zu https://proxy.opendatagermany.io/api/>
+```
 
-**Konsequenz:** Diese App wird bis auf Weiteres **nicht im ODAS-Live-Betrieb** eingesetzt,
-sondern ausschließlich lokal gegen eine ODAS-Dev-Instanz und zu Vorschauzwecken betrieben.
-Sobald die ODAS-Plattform einen serverseitigen Schutzmechanismus für Zugangsdaten bereitstellt,
-wird die App darauf umgestellt — voraussichtlich durch reine Config-Änderung (`apiurl` auf einen
-Relay-Endpunkt, `apiKey` leeren), ohne Anpassung von `app/app.js`.
+Der Relay hängt Host, `/api/`-Präfix und den plattformseitig konfigurierten `x-api-key`-Header an
+und reicht Statuscode, Content-Type und Antwortkörper unverändert durch. `app/app.js` kennt
+keinen API-Key mehr — die Instanz-Konfiguration enthält kein `apiKey`-Feld.
 
-Der ODAS-Proxy (`/odp-data`) ist hier keine Lösung: Er löst den Zielhost über den ODP-Host des
-betreibenden Portals auf, nicht über den in `apiurl` konfigurierten Host. Bei einem fremden Host
-wie `proxy.opendatagermany.io` scheitert jeder Proxy-Aufruf mit HTTP 500. Diese App bietet
-deshalb bewusst **kein** `proxyAktiv`-Feld an.
+Damit entfällt der frühere Vorbehalt: Der API-Key war zuvor Teil der Instanz-Config und damit für
+jede:n Besucher:in im Klartext einsehbar (Instanz-Konfigurationen werden über einen anonymen
+`fetch` auf `<app-url>/config` geladen, siehe `app/app-base.js`, `getConfigUrl()`). Diese App ist
+deshalb jetzt für den ODAS-Live-Betrieb vorgesehen.
+
+Außerhalb einer ODAS-Instanz — Live Server, Standalone-Betrieb — existiert `<app-url>/dzt` nicht;
+dort zeigt die App eine Fehlermeldung statt Wegedaten (siehe „Lokale Entwicklung" und
+„Betriebsarten" unten).
+
+Der ODAS-Proxy (`/odp-data`) ist dafür weiterhin keine Alternative: Er löst den Zielhost über den
+ODP-Host des betreibenden Portals auf, nicht über den in `apiurl` konfigurierten Host. Bei einem
+fremden Host wie `proxy.opendatagermany.io` scheitert jeder `/odp-data`-Aufruf mit HTTP 500. Diese
+App bietet deshalb weiterhin bewusst **kein** `proxyAktiv`-Feld an — sie nutzt den separaten
+`/dzt`-Relay.
 
 ---
 
@@ -88,9 +92,9 @@ Die App lädt keine Datei, sondern fragt bei jeder Suche live die
    wird der vollständige Datensatz nachgeladen (Beschreibung, Bilder, Streckengeometrie,
    Höhenmeter, Lizenz). Ergebnisse werden pro Sitzung gecacht.
 
-Beide Endpunkte erlauben CORS (`Access-Control-Allow-Origin: *`); ein direkter `fetch` im Browser
-ist möglich, sofern ein gültiger `x-api-key`-Header mitgeschickt wird (siehe Sicherheitshinweis
-oben).
+Beide Endpunkte ruft die App über den ODAS-DZT-Relay auf (`<app-url>/dzt?path=…`, siehe
+„Datenzugriff über den ODAS-DZT-Relay" oben) — kein direkter Browser-`fetch` gegen
+`proxy.opendatagermany.io` und kein `x-api-key`-Header in der App.
 
 **Datenlage (gemessen 2026-08-19, 679 Wege im 50-km-Testradius):** Streckengeometrie 100 %,
 Länge/Schwierigkeit ~100 %, geschätzte Dauer ~67 %. Sperrstatus, empfohlene Ausrüstung,
@@ -148,10 +152,12 @@ Empfohlene ODAS-Einstellungen:
 `odas-config/` gleichzeitig erreichbar sind. Die App erkennt Localhost (127.0.0.1/localhost)
 automatisch und lädt dann `odas-config/config.json`; kein Edit an `app/app-base.js` nötig.
 
-**Für einen echten lokalen Testlauf mit Daten** in `odas-config/config.json` unter `apiKey` den
-eigenen DZT-API-Key eintragen sowie `ort`/`radiusKm`/`kategorie` nach Bedarf anpassen. Diese
-Datei **nicht committen**, solange sie einen echten Key enthält – lokal wieder leeren oder den
-Key vor einem Commit entfernen.
+**Wegedaten gibt es bei Live Server nicht:** Der DZT-API-Key liegt seit der Umstellung auf den
+ODAS-DZT-Relay nicht mehr in der App-Konfiguration, sondern ausschließlich serverseitig im ODAS
+(siehe „Datenzugriff über den ODAS-DZT-Relay" oben). `<app-url>/dzt` existiert bei Live Server
+nicht, deshalb bleibt der Datenabruf ohne Ergebnis — UI, Konfiguration und Fehlerbild lassen sich
+trotzdem prüfen. Ein echter Testlauf mit Daten braucht eine laufende ODAS-Instanz, in der diese
+App als Instanz gebucht ist (siehe „Auslieferung an den ODAS" unten).
 
 ### Aufbau der App
 Der Inhaltsbereich wird in `app/app.js` erstellt. Dort sind der automatische Suchlauf aus der
@@ -179,8 +185,7 @@ Folgende Parameter werden bei der App-Instanzierung im ODAS konfiguriert:
 
 | Parameter | Beschreibung | Pflicht |
 | --- | --- | --- |
-| `apiurl` | SPARQL-Endpunkt des DZT Knowledge Graph. Die REST-Detailabfrage wird automatisch aus derselben Origin abgeleitet. | ja |
-| `apiKey` | DZT-API-Key (`x-api-key`-Header). Siehe Sicherheitshinweis oben. | ja |
+| `apiurl` | SPARQL-Endpunkt des DZT Knowledge Graph. Der Abruf läuft über den ODAS-DZT-Relay, der REST-Detailpfad wird automatisch aus derselben Origin abgeleitet. | ja |
 | `urlDaten` | URL zur Zugriffsdokumentation des DZT Knowledge Graph | ja |
 | `ort` | Ortsname, um den die Wege dieser Instanz gesucht werden (Nominatim-Geokodierung) | ja |
 | `radiusKm` | Suchradius um den konfigurierten Ort (5/10/25/50/100 km) | ja |
@@ -199,17 +204,19 @@ Was bei der App-Entwicklung beachtet werden sollte, steht in der ODA-Spezifikati
 
 ## ODAS-Proxy
 Diese App bietet **kein** `proxyAktiv`-Feld an. Die Datenquelle (`proxy.opendatagermany.io`)
-stammt nicht vom Open-Data-Portal, das die App betreibt; der ODAS-Proxy löst den Zielhost aber
-über den ODP-Host des betreibenden Portals auf. Bei abweichendem Host scheitert jeder
-`odp-data`-Aufruf mit HTTP 500, ohne Rückfall auf Direktzugriff. Die App lädt deshalb
-ausschließlich direkt.
+stammt nicht vom Open-Data-Portal, das die App betreibt; der ODAS-Proxy (`/odp-data`) löst den
+Zielhost aber über den ODP-Host des betreibenden Portals auf. Bei abweichendem Host scheitert
+jeder `odp-data`-Aufruf mit HTTP 500, ohne Rückfall auf Direktzugriff. Die App nutzt stattdessen
+den separaten ODAS-DZT-Relay (`/dzt`, siehe „Datenzugriff über den ODAS-DZT-Relay" oben).
 
 ---
 
 ## Betriebsarten
 
-Die App kann lokal oder eigenständig hinter einem Traefik-Reverse-Proxy betrieben werden. Ein
-Betrieb über den ODAS ist aktuell bewusst **nicht vorgesehen** (siehe Sicherheitshinweis oben).
+Die App ist für den Betrieb über den ODAS vorgesehen (siehe „Datenzugriff über den
+ODAS-DZT-Relay" oben) und kann daneben lokal oder eigenständig hinter einem
+Traefik-Reverse-Proxy betrieben werden — dort allerdings ohne Wegedaten, weil der `/dzt`-Relay
+nur innerhalb einer ODAS-Instanz existiert.
 
 ### Standalone-Betrieb
 
@@ -229,18 +236,20 @@ STANDALONE=true make down
 Im Standalone-Betrieb entfällt die lokale Portfreigabe; Traefik terminiert TLS und
 leitet auf den internen Nginx-Port 80 weiter. Die Konfiguration wird aus derselben
 `odas-config/config.json` gelesen wie in der Entwicklung und von Nginx unter `/config`
-ausgeliefert. **Der API-Key liegt in diesem Betrieb ebenso öffentlich in der Config wie im
-ODAS-Live-Betrieb** – der Sicherheitshinweis oben gilt unverändert.
+ausgeliefert. **Wegedaten liefert der Standalone-Betrieb nicht:** Der `/dzt`-Relay existiert nur
+innerhalb einer ODAS-Instanz; ohne ihn bleibt der Datenabruf ergebnislos.
 
 ### Beim Aufruf kontaktierte Drittanbieter
 
-Beim Aufruf dieser App werden folgende externe Server kontaktiert:
+Vom Browser aus werden beim Aufruf dieser App folgende externe Server kontaktiert:
 
-- `proxy.opendatagermany.io` — DZT-Knowledge-Graph-Schnittstelle (Wegedaten, SPARQL + REST)
 - `nominatim.openstreetmap.org` — Ortssuche (Geokodierung)
 - `tile.openstreetmap.org` — Kartenkacheln (OpenStreetMap)
 
-Diese Anbieter bleiben auch im Standalone-Betrieb extern; ein vollständig autarker Betrieb ohne
+Im ODAS-Live-Betrieb kontaktiert zusätzlich der Open Data App Store serverseitig
+`proxy.opendatagermany.io` (DZT-Knowledge-Graph-Schnittstelle, Wegedaten, SPARQL + REST) — dieser
+Zugriff findet nicht im Browser statt (siehe „Datenzugriff über den ODAS-DZT-Relay" oben). Diese
+Anbieter bleiben auch im Standalone-Betrieb extern; ein vollständig autarker Betrieb ohne
 Internetzugang ist derzeit nicht möglich. Alle Programmbibliotheken werden lokal aus
 `app/vendor/` ausgeliefert und nicht extern geladen.
 
@@ -249,9 +258,7 @@ Internetzugang ist derzeit nicht möglich. Alle Programmbibliotheken werden loka
 `make zip` erzeugt das Liefer-ZIP mit `app/`, `assets/`, `app-package.json` und
 `CHANGELOG.md`. Die Infrastrukturdateien (`Dockerfile`, `docker-compose*.yml`,
 `nginx.conf`, `Makefile`) sind nicht Teil der Auslieferung. Das ZIP ist ein Bauartefakt und wird
-nicht mitversioniert, sondern bei Bedarf mit `make zip` erzeugt. **Vor einem Upload in den
-ODAS-App-Store gilt weiterhin der Sicherheitshinweis oben** – die App ist dafür aktuell nicht
-vorgesehen.
+nicht mitversioniert, sondern bei Bedarf mit `make zip` erzeugt.
 
 ## Autor
 © 2026, Ondics GmbH

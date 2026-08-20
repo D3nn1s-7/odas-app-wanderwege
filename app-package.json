@@ -3,7 +3,7 @@
   "app-entwickler-name": "ondics-gmbh",
   "name-in-url": "wanderwege",
   "name": "Wanderwege",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "odas-app-icon": "assets/odas-app-icon.svg",
   "app-icon": "assets/odas-app-icon.svg",
   "kurzbeschreibung": "Zeigt Wander- und Radwege im konfigurierten Umkreis eines festen Orts – mit Karte, Streckenverlauf, Höhenprofil und ODTA-konformem JSON-LD-Export.",
@@ -20,7 +20,7 @@
     "<p>Die Daten stammen aus dem Knowledge Graph der Deutschen Zentrale für Tourismus (DZT), einem gemeinsamen Projekt der DZT und der Landesmarketingorganisationen. Die App fragt die Wege live über die SPARQL-Schnittstelle des Knowledge Graphs ab.</p>",
     "<ul><li><strong>Open Data Portal:</strong> <a href=\"https://open-data-germany.org/knowledge-graphen/\" target=\"_blank\" rel=\"noopener\">Open Data Destination Germany</a></li><li><strong>Datensatz:</strong> <a href=\"https://changelog-dzt-kg.readme.io/docs/how-to-access-the-data\" target=\"_blank\" rel=\"noopener\">DZT Knowledge Graph – Zugriffsdokumentation</a></li><li><strong>Ressource:</strong> <a href=\"https://proxy.opendatagermany.io/api/ts/v1/kg/sparql\" target=\"_blank\" rel=\"noopener\">SPARQL-Endpunkt</a></li></ul>",
     "<h3>Open Data App Store</h3>",
-    "<p>Diese App ist für den Open Data App Store vorbereitet. Sie erfordert einen DZT-API-Key; Hinweise zum Betrieb finden sich in der Instanzkonfiguration und im README.</p>"
+    "<p>Diese App ist für den Open Data App Store vorbereitet. Der Datenabruf läuft über den DZT-Relay des Open Data App Store; ein eigener API-Key ist für den Betrieb dieser App nicht nötig. Hinweise dazu finden sich im README.</p>"
   ],
   "tags-funktion": ["Karte", "Filter", "Höhenprofil"],
   "tags-dateityp": ["JSON-LD", "SPARQL"],
@@ -121,9 +121,8 @@
         "_multiline_",
         "<p>Diese App verarbeitet die angezeigten offenen Daten ausschließlich im Browser. Es werden keine Cookies gesetzt, keine Nutzungsstatistiken erhoben und keine Daten im Browser dauerhaft gespeichert.</p>",
         "<p>Alle für die Darstellung benötigten Programmbibliotheken werden mit der App ausgeliefert. Beim Aufruf werden dafür keine externen Bibliotheks-Server kontaktiert.</p>",
-        "<p>Die angezeigten Wege werden vom Browser direkt bei der DZT-Knowledge-Graph-Schnittstelle abgerufen. Dabei werden technisch bedingt IP-Adresse und Browserkennung an deren Betreiber übermittelt. Für die Auflösung des konfigurierten Orts wird zusätzlich die Geokodierungs-Schnittstelle von OpenStreetMap (Nominatim) kontaktiert.</p>",
-        "<p><strong>Hinweis zum API-Key:</strong> Der für den Datenabruf verwendete DZT-API-Key ist Teil der Instanzkonfiguration dieser App und wird beim Laden der App im Browser übertragen. Er ist damit technisch von Dritten einsehbar. Diese App ist deshalb aktuell nicht für den produktiven ODAS-Live-Betrieb vorgesehen (siehe README).</p>",
-        "<h3>Beim Aufruf kontaktierte Drittanbieter</h3><p>Folgende externe Server werden kontaktiert. Dabei werden IP-Adresse und User-Agent der Besucher:innen an diese Anbieter übertragen:</p><ul><li><strong>proxy.opendatagermany.io</strong> — DZT-Knowledge-Graph-Schnittstelle (Wegedaten)</li><li><strong>nominatim.openstreetmap.org</strong> — Ortssuche (Geokodierung)</li><li><strong>tile.openstreetmap.org</strong> — Kartenkacheln</li></ul>"
+        "<p>Die angezeigten Wege werden über den DZT-Relay des Open Data App Store abgerufen: Der Browser sendet die Anfrage an den Open Data App Store, der sie serverseitig – inklusive des dort hinterlegten API-Keys – an die DZT-Knowledge-Graph-Schnittstelle weiterleitet. Für die Auflösung des konfigurierten Orts wird zusätzlich die Geokodierungs-Schnittstelle von OpenStreetMap (Nominatim) direkt vom Browser aus kontaktiert.</p>",
+        "<h3>Beim Aufruf kontaktierte Drittanbieter</h3><p>Folgende externe Server werden kontaktiert. Dabei werden IP-Adresse und User-Agent der Besucher:innen an diese Anbieter übertragen:</p><ul><li><strong>nominatim.openstreetmap.org</strong> — Ortssuche (Geokodierung)</li><li><strong>tile.openstreetmap.org</strong> — Kartenkacheln</li></ul><p>Die DZT-Knowledge-Graph-Schnittstelle (<strong>proxy.opendatagermany.io</strong>) wird nicht vom Browser, sondern serverseitig vom Open Data App Store kontaktiert.</p>"
       ],
       "format": { "typ": "markdown" },
       "erforderlich": "ja"
@@ -148,18 +147,10 @@
     "apiurl": {
       "label": "SPARQL-Endpunkt",
       "category": "datenherkunft",
-      "hilfe": "SPARQL-Endpunkt des DZT Knowledge Graph. Die REST-Detailabfrage wird automatisch aus derselben Origin abgeleitet (…/api/ts/v2/kg/things).",
+      "hilfe": "SPARQL-Endpunkt des DZT Knowledge Graph. Der Abruf läuft über den DZT-Relay des Open Data App Store (…/dzt), der den API-Key serverseitig ergänzt; die REST-Detailabfrage wird automatisch aus derselben Origin abgeleitet (…/api/ts/v2/kg/things).",
       "default": "https://proxy.opendatagermany.io/api/ts/v1/kg/sparql",
       "beispiel": "https://proxy.opendatagermany.io/api/ts/v1/kg/sparql",
       "format": { "typ": "url", "laenge": 255 },
-      "erforderlich": "ja"
-    },
-    "apiKey": {
-      "label": "DZT-API-Key",
-      "category": "datenherkunft",
-      "hilfe": "API-Key für den DZT Knowledge Graph (x-api-key-Header). ACHTUNG: Dieser Wert ist Teil der Instanzkonfiguration und wird beim Laden der App im Browser übertragen – er ist damit öffentlich einsehbar. Diese App ist deshalb nicht für den ODAS-Live-Betrieb vorgesehen, solange die Plattform keinen serverseitigen Schutz für Zugangsdaten anbietet.",
-      "default": "",
-      "format": { "typ": "string", "laenge": 100 },
       "erforderlich": "ja"
     },
     "ort": {

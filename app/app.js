@@ -23,10 +23,12 @@
  *    Instanz zurueck, wird aus dem Cache neu gerendert statt neu geladen
  *    (siehe app(), "Resume"-Zweig).
  *
- * Sicherheitshinweis (siehe README): Der DZT-API-Key liegt in der
- * Instanz-Konfiguration und ist damit oeffentlich lesbar, weil ODAS-Apps
- * ihre Konfiguration ueber einen anonymen fetch laden. Diese App ist daher
- * nicht fuer den ODAS-Live-Betrieb vorgesehen.
+ * Datenzugriff (siehe README): Alle DZT-Anfragen laufen ueber den
+ * ODAS-DZT-Relay (GET <appPath>/dzt?path=<pfad>). Der Relay haengt Host,
+ * "/api/"-Praefix und den x-api-key an; die App selbst kennt und ueberprueft
+ * keinen API-Key mehr. Ausserhalb einer ODAS-Instanz (Live Server,
+ * Standalone) gibt es diesen Relay nicht — die App zeigt dann eine
+ * Fehlermeldung statt Daten.
  */
 
 // F-42-Muster: Instanzzaehler auf Modulebene, Laufzeitzustand pro Instanz im
@@ -891,22 +893,26 @@ async function loadTrailDetail(state, trail) {
 }
 
 async function fetchTrailDetail(id, configdata) {
-  const thingsBase = buildThingsBaseUrl(configdata.apiurl);
-  if (!thingsBase) throw new Error("Der Detail-Endpunkt konnte nicht aus der Instanzkonfiguration abgeleitet werden.");
+  const thingsPath = buildThingsPath(configdata.apiurl);
+  if (!thingsPath) throw new Error("Der Detail-Endpunkt konnte nicht aus der Instanzkonfiguration abgeleitet werden.");
   const lastSlash = id.lastIndexOf("/");
   const ns = id.slice(0, lastSlash + 1);
   const localName = id.slice(lastSlash + 1);
-  const url = `${thingsBase}/${encodeURIComponent(localName)}?ns=${encodeURIComponent(ns)}`;
-  const json = await fetchKgJson(url, configdata);
+  const path = `${thingsPath}/${encodeURIComponent(localName)}?ns=${encodeURIComponent(ns)}`;
+  const json = await fetchKgJson(path);
   const obj = Array.isArray(json) ? json[0] : json;
   if (!obj) throw new Error("Keine Detaildaten in der Antwort gefunden.");
   return parseTrailDetail(obj);
 }
 
-function buildThingsBaseUrl(sparqlUrl) {
+// Relativ zu https://proxy.opendatagermany.io/api/ — der REST-Detailpfad ist
+// laut DZT-Doku unabhaengig vom konfigurierten SPARQL-Pfad immer
+// ts/v2/kg/things. Die Pruefung von apiurl bleibt trotzdem sinnvoll: eine
+// kaputte Instanzkonfiguration soll hier scheitern, nicht erst beim Fetch.
+function buildThingsPath(sparqlUrl) {
   try {
-    const u = new URL(sparqlUrl);
-    return `${u.origin}/api/ts/v2/kg/things`;
+    new URL(String(sparqlUrl || ""));
+    return "ts/v2/kg/things";
   } catch (_error) {
     return null;
   }
@@ -1290,11 +1296,9 @@ function renderSchale4Blocks(state) {
 
 function missingSourceReason(configdata) {
   const apiurl = String(configdata.apiurl || "").trim();
-  const apiKey = String(configdata.apiKey || "").trim();
   const ort = String(configdata.ort || "").trim();
   const isPlaceholder = (v) => /^\{\{.*\}\}$/.test(v) || /^<.*>$/.test(v);
   if (!apiurl || isPlaceholder(apiurl)) return "Es ist keine Datenquelle konfiguriert.";
-  if (!apiKey || isPlaceholder(apiKey)) return "Es ist kein DZT-API-Key konfiguriert.";
   if (!ort || isPlaceholder(ort)) return "Es ist kein Ort konfiguriert.";
   return null;
 }
@@ -1321,19 +1325,47 @@ function showStatus(state, message, kind) {
 }
 
 // ---------------------------------------------------------------------------
-// Fetch-Helfer (Direktzugriff, kein ODAS-Proxy — siehe README)
+// Fetch-Helfer (ueber den ODAS-DZT-Relay, siehe README)
 // ---------------------------------------------------------------------------
 
-async function fetchSparql(query, configdata, signal) {
-  const base = String(configdata.apiurl || "").trim();
-  const url = `${base}?${new URLSearchParams({ query }).toString()}`;
-  return fetchKgJson(url, configdata, { accept: "application/sparql-results+json" }, signal);
+// Liefert den App-Basispfad fuer /app/, /app und /app/index.html.
+// Ein Dateiname wird entfernt; ein Verzeichnispfad bleibt erhalten.
+// Uebernommen aus odas-app-builder/references/odas_proxy_reference.js.
+function getOdasAppBasePath(pathname = window.location.pathname) {
+  let appPath = String(pathname || "/");
+
+  if (!appPath.endsWith("/")) {
+    const lastSlashIndex = appPath.lastIndexOf("/");
+    const lastSegment = appPath.substring(lastSlashIndex + 1);
+    if (lastSegment.includes(".")) {
+      appPath = appPath.substring(0, lastSlashIndex + 1);
+    }
+  }
+
+  return appPath.replace(/\/+$/, "");
 }
 
-async function fetchKgJson(url, configdata, extraHeaders = {}, signal) {
+// Der Relay haengt an https://proxy.opendatagermany.io/api/ an — der
+// konfigurierte SPARQL-Endpunkt (…/api/ts/v1/kg/sparql) verliert dafuer sein
+// "/api/"-Praefix.
+function dztApiPath(apiurl) {
+  try {
+    return new URL(String(apiurl || "")).pathname.replace(/^\/+api\/?/, "");
+  } catch (_error) {
+    return "";
+  }
+}
+
+async function fetchSparql(query, configdata, signal) {
+  const base = dztApiPath(configdata.apiurl);
+  if (!base) throw new Error("Der SPARQL-Endpunkt konnte nicht aus der Instanzkonfiguration abgeleitet werden.");
+  const path = `${base}?${new URLSearchParams({ query }).toString()}`;
+  return fetchKgJson(path, { accept: "application/sparql-results+json" }, signal);
+}
+
+async function fetchKgJson(path, extraHeaders = {}, signal) {
   const headers = { accept: "application/json", ...extraHeaders };
-  const apiKey = String(configdata.apiKey || "").trim();
-  if (apiKey) headers["x-api-key"] = apiKey;
+  const url = `${getOdasAppBasePath()}/dzt?path=${encodeURIComponent(path)}`;
 
   let response;
   try {
@@ -1344,7 +1376,7 @@ async function fetchKgJson(url, configdata, extraHeaders = {}, signal) {
   }
 
   if (response.status === 401 || response.status === 403) {
-    throw new Error("Der DZT-API-Key ist ungültig oder abgelaufen. Bitte in der Instanzkonfiguration prüfen.");
+    throw new Error("Der Zugang zur DZT-Schnittstelle wurde abgelehnt. Bitte den Betreiber des Open Data App Store informieren.");
   }
   if (response.status === 429) {
     throw new Error("Das Tageslimit der DZT-Schnittstelle ist erreicht. Bitte später erneut versuchen.");
